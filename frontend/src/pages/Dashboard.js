@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -45,13 +45,13 @@ import {
   Edit,
   CalendarToday,
 } from '@mui/icons-material';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Chart, ArcElement } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+Chart.register(ArcElement);
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -377,7 +377,7 @@ function Dashboard() {
     return { startDate, endDate };
   };
 
-  const getFilteredExpenses = () => {
+  const filteredExpenses = useMemo(() => {
     const { startDate, endDate } = getDateRange();
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.createdAt);
@@ -385,9 +385,9 @@ function Dashboard() {
       const isNotSettlement = !expense.category?.startsWith('Settlement');
       return isInDateRange && isNotSettlement;
     });
-  };
+  }, [expenses, dateFilter, customStartDate, customEndDate]);
 
-  const getFilteredActivity = () => {
+  const filteredActivity = useMemo(() => {
     const { startDate, endDate } = getDateRange();
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.createdAt);
@@ -402,11 +402,17 @@ function Dashboard() {
         return isInDateRange; // 'all' - show everything
       }
     });
+  }, [expenses, dateFilter, customStartDate, customEndDate, activityFilter]);
+
+  const getFilteredExpenses = () => filteredExpenses;
+  const getFilteredActivity = () => filteredActivity;
+
+  const getUserShare = (expense) => {
+    const userSplit = expense.splits.find(split => split.user._id === user._id);
+    return userSplit ? userSplit.amount : 0;
   };
 
-  const getExpenseStats = () => {
-    const filteredExpenses = getFilteredExpenses();
-    
+  const expenseStats = useMemo(() => {
     if (filteredExpenses.length === 0) {
       return {
         totalCount: 0,
@@ -431,16 +437,12 @@ function Dashboard() {
       categoriesUsed: categories.size,
       largestExpense,
     };
-  };
+  }, [filteredExpenses, user._id]);
 
-  const getUserShare = (expense) => {
-    const userSplit = expense.splits.find(split => split.user._id === user._id);
-    return userSplit ? userSplit.amount : 0;
-  };
+  const getExpenseStats = () => expenseStats;
 
-  const getCategoryData = () => {
+  const categoryData = useMemo(() => {
     const categoryTotals = {};
-    const filteredExpenses = getFilteredExpenses();
     
     filteredExpenses.forEach(expense => {
       const category = expense.category || 'Uncategorized';
@@ -498,12 +500,13 @@ function Dashboard() {
         hoverOffset: 25, // Pop out effect on hover
       }]
     };
-  };
+  }, [filteredExpenses, user._id, theme.palette.background.paper, theme.palette.mode]);
+
+  const getCategoryData = () => categoryData;
 
   const handleCategoryClick = (event, elements) => {
     if (elements.length > 0) {
       const index = elements[0].index;
-      const categoryData = getCategoryData();
       const category = categoryData.labels[index];
       setSelectedCategory(category);
       setCategoryDialog(true);
@@ -537,6 +540,57 @@ function Dashboard() {
       return (isInSplits || isPayer) && isCurrentUserInvolved;
     });
   };
+
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: true,
+    onClick: handleCategoryClick,
+    onHover: (event, elements) => {
+      if (elements.length > 0) {
+        const index = elements[0].index;
+        setHoveredCategory({
+          name: categoryData.labels[index],
+          amount: categoryData.datasets[0].data[index],
+          total: categoryData.datasets[0].data.reduce((a, b) => a + b, 0),
+        });
+      } else {
+        setHoveredCategory(null);
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          padding: 20,
+          font: {
+            size: 13,
+            family: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+            weight: '500',
+          },
+          color: theme.palette.text.primary,
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 12,
+          boxHeight: 12,
+        }
+      },
+      tooltip: {
+        enabled: false,
+      }
+    },
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 800,
+      easing: 'easeInOutQuart',
+    },
+    cutout: 0,
+    radius: '90%',
+    interaction: {
+      mode: 'index',
+      intersect: true,
+    },
+  }), [categoryData, theme.palette.text.primary]);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
@@ -1301,57 +1355,7 @@ function Dashboard() {
                 >
                   <Pie 
                     data={getCategoryData()} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: true,
-                      onClick: handleCategoryClick,
-                      onHover: (event, elements) => {
-                        if (elements.length > 0) {
-                          const index = elements[0].index;
-                          const categoryData = getCategoryData();
-                          setHoveredCategory({
-                            name: categoryData.labels[index],
-                            amount: categoryData.datasets[0].data[index],
-                            total: categoryData.datasets[0].data.reduce((a, b) => a + b, 0),
-                          });
-                        } else {
-                          setHoveredCategory(null);
-                        }
-                      },
-                      plugins: {
-                        legend: {
-                          position: 'bottom',
-                          labels: {
-                            padding: 20,
-                            font: {
-                              size: 13,
-                              family: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-                              weight: '500',
-                            },
-                            color: theme.palette.text.primary,
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            boxWidth: 12,
-                            boxHeight: 12,
-                          }
-                        },
-                        tooltip: {
-                          enabled: false,
-                        }
-                      },
-                      animation: {
-                        animateRotate: true,
-                        animateScale: true,
-                        duration: 800,
-                        easing: 'easeInOutQuart',
-                      },
-                      cutout: 0,
-                      radius: '90%',
-                      interaction: {
-                        mode: 'index',
-                        intersect: true,
-                      },
-                    }}
+                    options={chartOptions}
                   />
                 </Box>
                 
