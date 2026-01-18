@@ -84,6 +84,7 @@ function Dashboard() {
   const [evenUpSuccess, setEvenUpSuccess] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [showCelebration, setShowCelebration] = useState(false);
+  const [showPartialCelebration, setShowPartialCelebration] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -280,14 +281,25 @@ function Dashboard() {
       await axios.post('/api/expenses', settlementData);
 
       setEvenUpSuccess('Settlement recorded successfully!');
-      setShowCelebration(true);
+      
+      // Check if this is a full settlement (balance will be 0)
+      const isFullSettlement = amount === balance.amount;
+      
+      if (isFullSettlement) {
+        setShowCelebration(true);
+      } else {
+        setShowPartialCelebration(true);
+      }
       
       setTimeout(() => {
         handleEvenUpClose();
         setUserExpensesDialog(false);
         setSelectedUser(null);
         fetchData();
-        setTimeout(() => setShowCelebration(false), 500);
+        setTimeout(() => {
+          setShowCelebration(false);
+          setShowPartialCelebration(false);
+        }, 500);
       }, 3000);
     } catch (error) {
       console.error('Even up error:', error);
@@ -620,6 +632,105 @@ function Dashboard() {
               }}
             >
               Payment recorded successfully ✨
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {/* Partial Settlement Celebration */}
+      {showPartialCelebration && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.95) 0%, rgba(6, 182, 212, 0.95) 100%)',
+            animation: 'fadeIn 0.3s ease-in',
+            '@keyframes fadeIn': {
+              from: { opacity: 0 },
+              to: { opacity: 1 },
+            },
+            '@keyframes slideIn': {
+              from: { transform: 'translateX(-100vw) rotate(-20deg)' },
+              to: { transform: 'translateX(0) rotate(0deg)' },
+            },
+            '@keyframes wiggle': {
+              '0%, 100%': { transform: 'rotate(-5deg)' },
+              '50%': { transform: 'rotate(5deg)' },
+            },
+            '@keyframes float': {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-20px)' },
+            },
+          }}
+        >
+          {/* Floating coins */}
+          {[...Array(15)].map((_, i) => (
+            <Box
+              key={i}
+              sx={{
+                position: 'absolute',
+                fontSize: '2rem',
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animation: `float ${2 + Math.random()}s ease-in-out infinite`,
+                animationDelay: `${Math.random() * 2}s`,
+                opacity: 0.7,
+              }}
+            >
+              💰
+            </Box>
+          ))}
+          
+          {/* Main Content */}
+          <Box
+            sx={{
+              textAlign: 'center',
+              position: 'relative',
+              zIndex: 1,
+              animation: 'slideIn 0.6s ease-out',
+            }}
+          >
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '4rem', md: '6rem' },
+                fontWeight: 900,
+                color: 'white',
+                mb: 2,
+                textShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                animation: 'wiggle 1s ease-in-out infinite',
+              }}
+            >
+              💸
+            </Typography>
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: { xs: '2rem', md: '3rem' },
+                fontWeight: 800,
+                color: 'white',
+                mb: 2,
+                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+              }}
+            >
+              Progress! Cha-ching!
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                color: 'rgba(255,255,255,0.9)',
+                fontWeight: 600,
+                textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              }}
+            >
+              Every little bit counts! 🎯
             </Typography>
           </Box>
         </Box>
