@@ -23,6 +23,11 @@ import {
   Divider,
   Alert,
   useTheme,
+  Select,
+  MenuItem,
+  TextField,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   Add,
@@ -35,6 +40,7 @@ import {
   Brightness7,
   LocalOffer,
   Edit,
+  CalendarToday,
 } from '@mui/icons-material';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
@@ -60,6 +66,9 @@ function Dashboard() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryDialog, setCategoryDialog] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [dateFilter, setDateFilter] = useState('month');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -113,6 +122,79 @@ function Dashboard() {
     return labels[type] || type;
   };
 
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate;
+
+    switch (dateFilter) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'custom':
+        if (customStartDate) {
+          startDate = new Date(customStartDate);
+        } else {
+          startDate = new Date(0); // Beginning of time if no custom date set
+        }
+        break;
+      default:
+        startDate = new Date(0);
+    }
+
+    const endDate = dateFilter === 'custom' && customEndDate
+      ? new Date(customEndDate)
+      : new Date();
+
+    return { startDate, endDate };
+  };
+
+  const getFilteredExpenses = () => {
+    const { startDate, endDate } = getDateRange();
+    return expenses.filter(expense => {
+      const expenseDate = new Date(expense.createdAt);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
+  };
+
+  const getExpenseStats = () => {
+    const filteredExpenses = getFilteredExpenses();
+    
+    if (filteredExpenses.length === 0) {
+      return {
+        totalCount: 0,
+        totalAmount: 0,
+        yourShare: 0,
+        averageExpense: 0,
+        categoriesUsed: 0,
+        largestExpense: 0,
+      };
+    }
+
+    const totalAmount = filteredExpenses.reduce((sum, exp) => sum + exp.totalAmount, 0);
+    const yourShare = filteredExpenses.reduce((sum, exp) => sum + getUserShare(exp), 0);
+    const categories = new Set(filteredExpenses.map(exp => exp.category || 'Uncategorized'));
+    const largestExpense = Math.max(...filteredExpenses.map(exp => exp.totalAmount));
+
+    return {
+      totalCount: filteredExpenses.length,
+      totalAmount,
+      yourShare,
+      averageExpense: totalAmount / filteredExpenses.length,
+      categoriesUsed: categories.size,
+      largestExpense,
+    };
+  };
+
   const getUserShare = (expense) => {
     const userSplit = expense.splits.find(split => split.user._id === user._id);
     return userSplit ? userSplit.amount : 0;
@@ -120,8 +202,9 @@ function Dashboard() {
 
   const getCategoryData = () => {
     const categoryTotals = {};
+    const filteredExpenses = getFilteredExpenses();
     
-    expenses.forEach(expense => {
+    filteredExpenses.forEach(expense => {
       const category = expense.category || 'Uncategorized';
       const userShare = getUserShare(expense);
       
@@ -191,7 +274,8 @@ function Dashboard() {
 
   const getExpensesByCategory = () => {
     if (!selectedCategory) return [];
-    return expenses.filter(expense => 
+    const filteredExpenses = getFilteredExpenses();
+    return filteredExpenses.filter(expense => 
       (expense.category || 'Uncategorized') === selectedCategory
     );
   };
@@ -294,7 +378,7 @@ function Dashboard() {
           elevation={0}
           sx={{ 
             mb: 4,
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(20, 184, 166, 0.05) 100%)',
+            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)',
             border: '1px solid rgba(6, 182, 212, 0.2)',
           }}
         >
@@ -304,7 +388,7 @@ function Dashboard() {
               gutterBottom 
               sx={{ 
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+                background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
@@ -326,15 +410,15 @@ function Dashboard() {
                         height: '100%',
                         cursor: 'pointer',
                         background: balance.type === 'owes_you' 
-                          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)'
-                          : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)',
-                        border: `1px solid ${balance.type === 'owes_you' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                          ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(16, 185, 129, 0.08) 100%)'
+                          : 'linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(239, 68, 68, 0.08) 100%)',
+                        border: `1px solid ${balance.type === 'owes_you' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
                           transform: 'translateY(-4px) scale(1.02)',
                           boxShadow: balance.type === 'owes_you'
-                            ? '0 20px 30px -10px rgba(16, 185, 129, 0.3)'
-                            : '0 20px 30px -10px rgba(239, 68, 68, 0.3)',
+                            ? '0 20px 30px -10px rgba(6, 182, 212, 0.4)'
+                            : '0 20px 30px -10px rgba(236, 72, 153, 0.4)',
                         },
                       }}
                     >
@@ -345,7 +429,7 @@ function Dashboard() {
                               sx={{ 
                                 mr: 1.5, 
                                 fontSize: 28,
-                                color: 'success.main',
+                                color: '#06b6d4',
                               }} 
                             />
                           ) : (
@@ -353,7 +437,7 @@ function Dashboard() {
                               sx={{ 
                                 mr: 1.5, 
                                 fontSize: 28,
-                                color: 'error.main',
+                                color: '#ec4899',
                               }} 
                             />
                           )}
@@ -361,7 +445,7 @@ function Dashboard() {
                             variant="body2" 
                             sx={{ 
                               fontWeight: 600,
-                              color: balance.type === 'owes_you' ? 'success.main' : 'error.main',
+                              color: balance.type === 'owes_you' ? '#06b6d4' : '#ec4899',
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                               fontSize: '0.75rem',
@@ -392,23 +476,185 @@ function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Expense Statistics Summary */}
+        {!loading && expenses.length > 0 && (
+          <Card 
+            elevation={0}
+            sx={{ 
+              mb: 4,
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%)',
+              border: '1px solid rgba(139, 92, 246, 0.2)',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+                <Typography 
+                  variant="h5" 
+                  sx={{ 
+                    fontWeight: 800,
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  Expense Summary
+                </Typography>
+                
+                {/* Date Filter */}
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel>Time Period</InputLabel>
+                    <Select
+                      value={dateFilter}
+                      label="Time Period"
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      startAdornment={<CalendarToday sx={{ mr: 1, fontSize: 20, color: 'action.active' }} />}
+                    >
+                      <MenuItem value="today">Today</MenuItem>
+                      <MenuItem value="week">Last 7 Days</MenuItem>
+                      <MenuItem value="month">This Month</MenuItem>
+                      <MenuItem value="year">This Year</MenuItem>
+                      <MenuItem value="custom">Custom Range</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  {dateFilter === 'custom' && (
+                    <>
+                      <TextField
+                        label="Start Date"
+                        type="date"
+                        size="small"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ width: 150 }}
+                      />
+                      <TextField
+                        label="End Date"
+                        type="date"
+                        size="small"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ width: 150 }}
+                      />
+                    </>
+                  )}
+                </Box>
+              </Box>
+              <Grid container spacing={2}>
+                <Grid item xs={6} sm={4} md={2.4}>
+                  <Box 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'background.paper', 
+                      borderRadius: 2,
+                      textAlign: 'center',
+                      height: '100%',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      Total Expenses
+                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#8b5cf6', mt: 1 }}>
+                      {getExpenseStats().totalCount}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2.4}>
+                  <Box 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'background.paper', 
+                      borderRadius: 2,
+                      textAlign: 'center',
+                      height: '100%',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      Total Amount
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#ec4899', mt: 1 }}>
+                      {formatCurrency(getExpenseStats().totalAmount)}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2.4}>
+                  <Box 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'background.paper', 
+                      borderRadius: 2,
+                      textAlign: 'center',
+                      height: '100%',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      Your Share
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#06b6d4', mt: 1 }}>
+                      {formatCurrency(getExpenseStats().yourShare)}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2.4}>
+                  <Box 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'background.paper', 
+                      borderRadius: 2,
+                      textAlign: 'center',
+                      height: '100%',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      Categories
+                    </Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#f97316', mt: 1 }}>
+                      {getExpenseStats().categoriesUsed}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={4} md={2.4}>
+                  <Box 
+                    sx={{ 
+                      p: 2, 
+                      bgcolor: 'background.paper', 
+                      borderRadius: 2,
+                      textAlign: 'center',
+                      height: '100%',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                      Largest
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#ef4444', mt: 1 }}>
+                      {formatCurrency(getExpenseStats().largestExpense)}
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Category Breakdown Pie Chart */}
         {!loading && expenses.length > 0 && (
           <Card 
             elevation={0}
             sx={{ 
               mb: 4,
-              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(20, 184, 166, 0.05) 100%)',
-              border: '1px solid rgba(6, 182, 212, 0.2)',
+              background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%)',
+              border: '1px solid rgba(249, 115, 22, 0.2)',
             }}
           >
             <CardContent sx={{ p: 4 }}>
               <Typography 
                 variant="h5" 
-                gutterBottom 
+                gutterBottom
                 sx={{ 
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+                  background: 'linear-gradient(135deg, #f97316 0%, #06b6d4 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   mb: 2,
@@ -419,15 +665,21 @@ function Dashboard() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 Click on a category to view expenses in that category
               </Typography>
-              <Box 
-                sx={{ 
-                  display: 'flex',
-                  flexDirection: { xs: 'column', md: 'row' },
-                  gap: 3,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
+              
+              {getFilteredExpenses().length === 0 ? (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  No expenses found for the selected time period.
+                </Alert>
+              ) : (
+                <Box 
+                  sx={{ 
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row' },
+                    gap: 3,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                 <Box 
                   sx={{ 
                     width: '100%',
@@ -476,33 +728,7 @@ function Dashboard() {
                           }
                         },
                         tooltip: {
-                          backgroundColor: theme.palette.mode === 'dark' 
-                            ? 'rgba(15, 23, 42, 0.95)' 
-                            : 'rgba(255, 255, 255, 0.95)',
-                          titleColor: theme.palette.text.primary,
-                          bodyColor: theme.palette.text.primary,
-                          borderColor: theme.palette.divider,
-                          borderWidth: 1,
-                          padding: 12,
-                          cornerRadius: 8,
-                          titleFont: {
-                            size: 14,
-                            weight: '600',
-                            family: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-                          },
-                          bodyFont: {
-                            size: 13,
-                            family: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-                          },
-                          callbacks: {
-                            label: function(context) {
-                              const label = context.label || '';
-                              const value = context.parsed || 0;
-                              const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                              const percentage = ((value / total) * 100).toFixed(1);
-                              return `  ${label}: ${formatCurrency(value)} (${percentage}%)`;
-                            }
-                          }
+                          enabled: false,
                         }
                       },
                       animation: {
@@ -583,7 +809,7 @@ function Dashboard() {
                             # of Expenses
                           </Typography>
                           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                            {expenses.filter(e => (e.category || 'Uncategorized') === hoveredCategory.name).length}
+                            {getFilteredExpenses().filter(e => (e.category || 'Uncategorized') === hoveredCategory.name).length}
                           </Typography>
                         </Box>
                       </Box>
@@ -603,18 +829,28 @@ function Dashboard() {
                   </Card>
                 )}
               </Box>
+            )}
             </CardContent>
           </Card>
         )}
 
         {/* Recent Expenses */}
-        <Card elevation={0}>
+        <Card 
+          elevation={0}
+          sx={{ 
+            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%)',
+            border: '1px solid rgba(249, 115, 22, 0.2)',
+          }}
+        >
           <CardContent sx={{ p: 4 }}>
             <Typography 
               variant="h5" 
               gutterBottom 
               sx={{ 
                 fontWeight: 800,
+                background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
                 mb: 3,
               }}
             >
@@ -622,13 +858,13 @@ function Dashboard() {
             </Typography>
             {loading ? (
               <Typography>Loading...</Typography>
-            ) : expenses.length === 0 ? (
+            ) : getFilteredExpenses().length === 0 ? (
               <Alert severity="info" sx={{ mt: 2 }}>
-                No expenses yet. Click the + button to create your first expense!
+                No expenses found for the selected time period. {expenses.length > 0 ? 'Try adjusting the date filter.' : 'Click the + button to create your first expense!'}
               </Alert>
             ) : (
               <List>
-                {expenses.map((expense, index) => (
+                {getFilteredExpenses().map((expense, index) => (
                   <React.Fragment key={expense._id}>
                     {index > 0 && <Divider />}
                     <ListItem
