@@ -51,6 +51,8 @@ function Dashboard() {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userExpensesDialog, setUserExpensesDialog] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -102,6 +104,26 @@ function Dashboard() {
       unequal: 'Custom Split',
     };
     return labels[type] || type;
+  };
+
+  const handleUserClick = (balance) => {
+    setSelectedUser(balance.user);
+    setUserExpensesDialog(true);
+  };
+
+  const getExpensesWithUser = () => {
+    if (!selectedUser) return [];
+    
+    return expenses.filter(expense => {
+      // Check if the selected user is in the expense
+      const isInSplits = expense.splits.some(split => split.user._id === selectedUser._id);
+      const isPayer = expense.paidBy._id === selectedUser._id;
+      const isCurrentUserInvolved = 
+        expense.paidBy._id === user._id || 
+        expense.splits.some(split => split.user._id === user._id);
+      
+      return (isInSplits || isPayer) && isCurrentUserInvolved;
+    });
   };
 
   return (
@@ -226,8 +248,10 @@ function Dashboard() {
                   <Grid item xs={12} sm={6} md={4} key={balance.user._id}>
                     <Card 
                       elevation={0}
+                      onClick={() => handleUserClick(balance)}
                       sx={{
                         height: '100%',
+                        cursor: 'pointer',
                         background: balance.type === 'owes_you' 
                           ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)'
                           : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)',
@@ -518,6 +542,108 @@ function Dashboard() {
             Delete
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* User Expenses Dialog */}
+      <Dialog
+        open={userExpensesDialog}
+        onClose={() => {
+          setUserExpensesDialog(false);
+          setSelectedUser(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        {selectedUser && (
+          <>
+            <DialogTitle>
+              <Typography variant="h6" fontWeight="bold">
+                Expenses with {selectedUser.name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedUser.email}
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              {getExpensesWithUser().length === 0 ? (
+                <Alert severity="info">
+                  No expenses found with this user.
+                </Alert>
+              ) : (
+                <List>
+                  {getExpensesWithUser().map((expense, index) => (
+                    <React.Fragment key={expense._id}>
+                      {index > 0 && <Divider />}
+                      <ListItem
+                        sx={{
+                          cursor: 'pointer',
+                          borderRadius: 2,
+                          mb: 1,
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            bgcolor: 'rgba(6, 182, 212, 0.05)',
+                          },
+                        }}
+                        onClick={() => {
+                          setUserExpensesDialog(false);
+                          setSelectedExpense(expense);
+                        }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Typography variant="body1" fontWeight="500">
+                                {expense.description}
+                              </Typography>
+                              {expense.category && (
+                                <Chip
+                                  label={expense.category}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                />
+                              )}
+                              <Chip
+                                label={getSplitTypeLabel(expense.splitType)}
+                                size="small"
+                                variant="outlined"
+                              />
+                            </Box>
+                          }
+                          secondary={
+                            <Box>
+                              <Typography variant="body2" component="span">
+                                {formatCurrency(expense.totalAmount)} • Paid by{' '}
+                                {expense.paidBy._id === user._id
+                                  ? 'You'
+                                  : expense.paidBy._id === selectedUser._id
+                                  ? selectedUser.name
+                                  : expense.paidBy.name}
+                              </Typography>
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                {new Date(expense.createdAt).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    </React.Fragment>
+                  ))}
+                </List>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => {
+                  setUserExpensesDialog(false);
+                  setSelectedUser(null);
+                }}
+              >
+                Close
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Box>
   );
