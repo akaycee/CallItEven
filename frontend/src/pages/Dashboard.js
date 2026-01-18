@@ -1045,7 +1045,26 @@ function Dashboard() {
                 No {activityFilter === 'expenses' ? 'expenses' : activityFilter === 'settlements' ? 'settlements' : 'activity'} found for the selected time period. {expenses.length > 0 ? 'Try adjusting the date filter.' : 'Click the + button to create your first expense!'}
               </Alert>
             ) : (
-              <List>
+              <List 
+                sx={{ 
+                  maxHeight: { xs: 400, sm: 500, md: 600 },
+                  overflow: 'auto',
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+                    borderRadius: '4px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: theme.palette.mode === 'dark' ? 'rgba(139, 92, 246, 0.5)' : 'rgba(139, 92, 246, 0.3)',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      background: theme.palette.mode === 'dark' ? 'rgba(139, 92, 246, 0.7)' : 'rgba(139, 92, 246, 0.5)',
+                    },
+                  },
+                }}
+              >
                 {getFilteredActivity().map((expense, index) => (
                   <React.Fragment key={expense._id}>
                     {index > 0 && <Divider />}
