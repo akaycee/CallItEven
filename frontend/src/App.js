@@ -6,7 +6,6 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateExpense from './pages/CreateExpense';
 import EditExpense from './pages/EditExpense';
-import MyExpenses from './pages/MyExpenses';
 import { CircularProgress, Box } from '@mui/material';
 
 const PrivateRoute = ({ children }) => {
@@ -46,7 +45,6 @@ function App() {
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/expenses/new" element={<PrivateRoute><CreateExpense /></PrivateRoute>} />
         <Route path="/expenses/edit/:id" element={<PrivateRoute><EditExpense /></PrivateRoute>} />
-        <Route path="/expenses/my-tagged" element={<PrivateRoute><MyExpenses /></PrivateRoute>} />
         <Route path="/" element={<Navigate to="/dashboard" />} />
       </Routes>
     </AuthProvider>

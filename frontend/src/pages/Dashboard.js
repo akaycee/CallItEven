@@ -36,9 +36,13 @@ import {
   LocalOffer,
   Edit,
 } from '@mui/icons-material';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -53,6 +57,9 @@ function Dashboard() {
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userExpensesDialog, setUserExpensesDialog] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [categoryDialog, setCategoryDialog] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -104,6 +111,89 @@ function Dashboard() {
       unequal: 'Custom Split',
     };
     return labels[type] || type;
+  };
+
+  const getUserShare = (expense) => {
+    const userSplit = expense.splits.find(split => split.user._id === user._id);
+    return userSplit ? userSplit.amount : 0;
+  };
+
+  const getCategoryData = () => {
+    const categoryTotals = {};
+    
+    expenses.forEach(expense => {
+      const category = expense.category || 'Uncategorized';
+      const userShare = getUserShare(expense);
+      
+      if (categoryTotals[category]) {
+        categoryTotals[category] += userShare;
+      } else {
+        categoryTotals[category] = userShare;
+      }
+    });
+
+    const labels = Object.keys(categoryTotals);
+    const data = Object.values(categoryTotals);
+    
+    // Material Design color palette
+    const colors = [
+      '#06b6d4', // cyan-500
+      '#f97316', // orange-500
+      '#10b981', // emerald-500
+      '#8b5cf6', // violet-500
+      '#ef4444', // red-500
+      '#f59e0b', // amber-500
+      '#ec4899', // pink-500
+      '#14b8a6', // teal-500
+      '#6366f1', // indigo-500
+      '#84cc16', // lime-500
+    ];
+
+    // Lighter versions for hover
+    const hoverColors = [
+      '#22d3ee', // cyan-400
+      '#fb923c', // orange-400
+      '#34d399', // emerald-400
+      '#a78bfa', // violet-400
+      '#f87171', // red-400
+      '#fbbf24', // amber-400
+      '#f472b6', // pink-400
+      '#2dd4bf', // teal-400
+      '#818cf8', // indigo-400
+      '#a3e635', // lime-400
+    ];
+
+    return {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors.slice(0, labels.length),
+        hoverBackgroundColor: hoverColors.slice(0, labels.length),
+        borderColor: theme.palette.background.paper,
+        borderWidth: 3,
+        hoverBorderWidth: 5,
+        hoverBorderColor: theme.palette.mode === 'dark' ? '#1e293b' : '#ffffff',
+        spacing: 2,
+        hoverOffset: 25, // Pop out effect on hover
+      }]
+    };
+  };
+
+  const handleCategoryClick = (event, elements) => {
+    if (elements.length > 0) {
+      const index = elements[0].index;
+      const categoryData = getCategoryData();
+      const category = categoryData.labels[index];
+      setSelectedCategory(category);
+      setCategoryDialog(true);
+    }
+  };
+
+  const getExpensesByCategory = () => {
+    if (!selectedCategory) return [];
+    return expenses.filter(expense => 
+      (expense.category || 'Uncategorized') === selectedCategory
+    );
   };
 
   const handleUserClick = (balance) => {
@@ -167,23 +257,6 @@ function Dashboard() {
               {user?.name}
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<LocalOffer />}
-            onClick={() => navigate('/expenses/my-tagged')}
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              mr: 1,
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.3)',
-              },
-              textTransform: 'none',
-              fontWeight: 600,
-            }}
-          >
-            My Expenses
-          </Button>
           <IconButton
             onClick={colorMode.toggleColorMode}
             sx={{
@@ -318,6 +391,221 @@ function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Category Breakdown Pie Chart */}
+        {!loading && expenses.length > 0 && (
+          <Card 
+            elevation={0}
+            sx={{ 
+              mb: 4,
+              background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(20, 184, 166, 0.05) 100%)',
+              border: '1px solid rgba(6, 182, 212, 0.2)',
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <Typography 
+                variant="h5" 
+                gutterBottom 
+                sx={{ 
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  mb: 2,
+                }}
+              >
+                Expenses by Category
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Click on a category to view expenses in that category
+              </Typography>
+              <Box 
+                sx={{ 
+                  display: 'flex',
+                  flexDirection: { xs: 'column', md: 'row' },
+                  gap: 3,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Box 
+                  sx={{ 
+                    width: '100%',
+                    maxWidth: { xs: '100%', sm: 500, md: 600, lg: 700 },
+                    p: { xs: 1, sm: 2, md: 3 },
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'scale(1.02)',
+                    },
+                  }}
+                >
+                  <Pie 
+                    data={getCategoryData()} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: true,
+                      onClick: handleCategoryClick,
+                      onHover: (event, elements) => {
+                        if (elements.length > 0) {
+                          const index = elements[0].index;
+                          const categoryData = getCategoryData();
+                          setHoveredCategory({
+                            name: categoryData.labels[index],
+                            amount: categoryData.datasets[0].data[index],
+                            total: categoryData.datasets[0].data.reduce((a, b) => a + b, 0),
+                          });
+                        } else {
+                          setHoveredCategory(null);
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          position: 'bottom',
+                          labels: {
+                            padding: 20,
+                            font: {
+                              size: 13,
+                              family: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+                              weight: '500',
+                            },
+                            color: theme.palette.text.primary,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 12,
+                            boxHeight: 12,
+                          }
+                        },
+                        tooltip: {
+                          backgroundColor: theme.palette.mode === 'dark' 
+                            ? 'rgba(15, 23, 42, 0.95)' 
+                            : 'rgba(255, 255, 255, 0.95)',
+                          titleColor: theme.palette.text.primary,
+                          bodyColor: theme.palette.text.primary,
+                          borderColor: theme.palette.divider,
+                          borderWidth: 1,
+                          padding: 12,
+                          cornerRadius: 8,
+                          titleFont: {
+                            size: 14,
+                            weight: '600',
+                            family: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+                          },
+                          bodyFont: {
+                            size: 13,
+                            family: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+                          },
+                          callbacks: {
+                            label: function(context) {
+                              const label = context.label || '';
+                              const value = context.parsed || 0;
+                              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                              const percentage = ((value / total) * 100).toFixed(1);
+                              return `  ${label}: ${formatCurrency(value)} (${percentage}%)`;
+                            }
+                          }
+                        }
+                      },
+                      animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 800,
+                        easing: 'easeInOutQuart',
+                      },
+                      cutout: 0,
+                      radius: '90%',
+                      interaction: {
+                        mode: 'index',
+                        intersect: true,
+                      },
+                    }}
+                  />
+                </Box>
+                
+                {/* Floating Info Card on Hover */}
+                {hoveredCategory && (
+                  <Card
+                    elevation={8}
+                    sx={{
+                      minWidth: { xs: '100%', md: 280 },
+                      maxWidth: { xs: '100%', md: 320 },
+                      background: theme.palette.mode === 'dark'
+                        ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)'
+                        : 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(236, 72, 153, 0.1) 100%)',
+                      backdropFilter: 'blur(20px)',
+                      border: '2px solid',
+                      borderColor: theme.palette.mode === 'dark' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(139, 92, 246, 0.2)',
+                      animation: 'slideIn 0.3s ease-out',
+                      '@keyframes slideIn': {
+                        from: {
+                          opacity: 0,
+                          transform: 'translateX(20px)',
+                        },
+                        to: {
+                          opacity: 1,
+                          transform: 'translateX(0)',
+                        },
+                      },
+                    }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          fontWeight: 800,
+                          mb: 2,
+                          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}
+                      >
+                        {hoveredCategory.name}
+                      </Typography>
+                      <Divider sx={{ my: 2 }} />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            Your Share
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#8b5cf6' }}>
+                            {formatCurrency(hoveredCategory.amount)}
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            Percentage
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#ec4899' }}>
+                            {((hoveredCategory.amount / hoveredCategory.total) * 100).toFixed(1)}%
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            # of Expenses
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                            {expenses.filter(e => (e.category || 'Uncategorized') === hoveredCategory.name).length}
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box
+                        sx={{
+                          mt: 2,
+                          pt: 2,
+                          borderTop: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+                          💡 Click to view all expenses in this category
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Expenses */}
         <Card elevation={0}>
@@ -637,6 +925,111 @@ function Dashboard() {
                 onClick={() => {
                   setUserExpensesDialog(false);
                   setSelectedUser(null);
+                }}
+              >
+                Close
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Category Expenses Dialog */}
+      <Dialog
+        open={categoryDialog}
+        onClose={() => {
+          setCategoryDialog(false);
+          setSelectedCategory(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        {selectedCategory && (
+          <>
+            <DialogTitle>
+              <Box display="flex" alignItems="center" gap={1}>
+                <LocalOffer sx={{ color: '#8b5cf6' }} />
+                <Typography variant="h6" fontWeight="bold">
+                  {selectedCategory}
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                All expenses in this category
+              </Typography>
+            </DialogTitle>
+            <DialogContent dividers>
+              {getExpensesByCategory().length === 0 ? (
+                <Typography color="text.secondary">
+                  No expenses in this category
+                </Typography>
+              ) : (
+                <List>
+                  {getExpensesByCategory().map((expense, index) => (
+                    <React.Fragment key={expense._id}>
+                      {index > 0 && <Divider />}
+                      <ListItem
+                        sx={{ 
+                          cursor: 'pointer',
+                          '&:hover': { 
+                            bgcolor: 'rgba(6, 182, 212, 0.05)',
+                          },
+                        }}
+                        onClick={() => {
+                          setCategoryDialog(false);
+                          setSelectedExpense(expense);
+                        }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Typography variant="body1" fontWeight="500">
+                                {expense.description}
+                              </Typography>
+                              <Chip
+                                label={getSplitTypeLabel(expense.splitType)}
+                                size="small"
+                                variant="outlined"
+                              />
+                              {expense.createdBy._id === user._id && (
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/expenses/edit/${expense._id}`);
+                                  }}
+                                  sx={{ ml: 'auto' }}
+                                >
+                                  <Edit fontSize="small" />
+                                </IconButton>
+                              )}
+                            </Box>
+                          }
+                          secondary={
+                            <Box>
+                              <Typography variant="body2" component="span">
+                                {formatCurrency(expense.totalAmount)} • Paid by{' '}
+                                {expense.paidBy._id === user._id
+                                  ? 'You'
+                                  : expense.paidBy.name}
+                                {' • Your share: '}{formatCurrency(getUserShare(expense))}
+                              </Typography>
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                {new Date(expense.createdAt).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    </React.Fragment>
+                  ))}
+                </List>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => {
+                  setCategoryDialog(false);
+                  setSelectedCategory(null);
                 }}
               >
                 Close
