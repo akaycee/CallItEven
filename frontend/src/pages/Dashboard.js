@@ -688,15 +688,16 @@ function Dashboard() {
                         height: '100%',
                         cursor: 'pointer',
                         background: balance.type === 'owes_you' 
-                          ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(16, 185, 129, 0.08) 100%)'
-                          : 'linear-gradient(135deg, rgba(236, 72, 153, 0.1) 0%, rgba(239, 68, 68, 0.08) 100%)',
-                        border: `1px solid ${balance.type === 'owes_you' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
+                          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)'
+                          : 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+                        border: `1px solid ${balance.type === 'owes_you' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(249, 115, 22, 0.4)'}`,
+                        backdropFilter: 'blur(10px)',
                         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
                           transform: 'translateY(-4px) scale(1.02)',
                           boxShadow: balance.type === 'owes_you'
-                            ? '0 20px 30px -10px rgba(6, 182, 212, 0.4)'
-                            : '0 20px 30px -10px rgba(236, 72, 153, 0.4)',
+                            ? '0 20px 30px -10px rgba(16, 185, 129, 0.5)'
+                            : '0 20px 30px -10px rgba(249, 115, 22, 0.5)',
                         },
                       }}
                     >
@@ -707,7 +708,7 @@ function Dashboard() {
                               sx={{ 
                                 mr: 1.5, 
                                 fontSize: 28,
-                                color: '#06b6d4',
+                                color: '#10b981',
                               }} 
                             />
                           ) : (
@@ -715,7 +716,7 @@ function Dashboard() {
                               sx={{ 
                                 mr: 1.5, 
                                 fontSize: 28,
-                                color: '#ec4899',
+                                color: '#f97316',
                               }} 
                             />
                           )}
@@ -723,7 +724,7 @@ function Dashboard() {
                             variant="body2" 
                             sx={{ 
                               fontWeight: 600,
-                              color: balance.type === 'owes_you' ? '#06b6d4' : '#ec4899',
+                              color: balance.type === 'owes_you' ? '#10b981' : '#f97316',
                               textTransform: 'uppercase',
                               letterSpacing: '0.05em',
                               fontSize: '0.75rem',
@@ -1254,11 +1255,29 @@ function Dashboard() {
         onClose={() => setSelectedExpense(null)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)',
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+          },
+        }}
       >
         {selectedExpense && (
           <>
             <DialogTitle>
-              <Typography variant="h6" fontWeight="bold">
+              <Typography 
+                variant="h6" 
+                fontWeight="bold"
+                sx={{
+                  background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
                 {selectedExpense.description}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -1290,7 +1309,14 @@ function Dashboard() {
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     Category
                   </Typography>
-                  <Chip label={selectedExpense.category} color="primary" />
+                  <Chip 
+                    label={selectedExpense.category} 
+                    sx={{
+                      background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
+                      color: 'white',
+                      fontWeight: 600,
+                    }}
+                  />
                 </Box>
               )}
               <Box mb={2}>
@@ -1332,7 +1358,11 @@ function Dashboard() {
                   startIcon={<Edit />}
                   variant="contained"
                   sx={{
-                    background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+                    background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #ea580c 0%, #7c3aed 100%)',
+                    },
                   }}
                 >
                   Edit
@@ -1367,11 +1397,29 @@ function Dashboard() {
         }}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+          },
+        }}
       >
         {selectedUser && (
           <>
             <DialogTitle>
-              <Typography variant="h6" fontWeight="bold">
+              <Typography 
+                variant="h6" 
+                fontWeight="bold"
+                sx={{
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
                 Expenses with {selectedUser.name}
               </Typography>
               <Typography variant="body2" color="text.secondary">
@@ -1395,7 +1443,7 @@ function Dashboard() {
                           mb: 1,
                           transition: 'all 0.2s',
                           '&:hover': {
-                            bgcolor: 'rgba(6, 182, 212, 0.05)',
+                            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%)',
                           },
                         }}
                         onClick={() => {
@@ -1413,8 +1461,11 @@ function Dashboard() {
                                 <Chip
                                   label={expense.category}
                                   size="small"
-                                  color="primary"
-                                  variant="outlined"
+                                  sx={{
+                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                  }}
                                 />
                               )}
                               <Chip
