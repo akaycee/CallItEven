@@ -92,6 +92,24 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/expenses/tagged
+// @desc    Get all expenses where the current user is tagged (in splits)
+// @access  Private
+router.get('/tagged', protect, async (req, res) => {
+  try {
+    const expenses = await Expense.find({
+      'splits.user': req.user._id
+    })
+    .populate('paidBy splits.user createdBy', 'name email')
+    .sort({ createdAt: -1 });
+
+    res.json(expenses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/expenses/:id
 // @desc    Get a single expense by ID
 // @access  Private

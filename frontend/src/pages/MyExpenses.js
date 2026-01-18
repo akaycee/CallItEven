@@ -9,10 +9,8 @@ import {
   Button,
   Card,
   CardContent,
-  Grid,
   Chip,
   IconButton,
-  Fab,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,46 +23,35 @@ import {
   useTheme,
 } from '@mui/material';
 import {
-  Add,
-  Logout,
+  ArrowBack,
   Receipt,
-  TrendingUp,
-  TrendingDown,
-  Delete,
   Brightness4,
   Brightness7,
-  LocalOffer,
+  Logout,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 
-function Dashboard() {
+function MyExpenses() {
   const navigate = useNavigate();
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
   const { user, logout } = useContext(AuthContext);
   const [expenses, setExpenses] = useState([]);
-  const [balances, setBalances] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedExpense, setSelectedExpense] = useState(null);
-  const [deleteDialog, setDeleteDialog] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState(null);
 
   useEffect(() => {
-    fetchData();
+    fetchTaggedExpenses();
   }, []);
 
-  const fetchData = async () => {
+  const fetchTaggedExpenses = async () => {
     try {
-      const [expensesRes, balancesRes] = await Promise.all([
-        axios.get('/api/expenses'),
-        axios.get('/api/expenses/balance/summary'),
-      ]);
-      setExpenses(expensesRes.data);
-      setBalances(balancesRes.data);
+      const response = await axios.get('/api/expenses/tagged');
+      setExpenses(response.data);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching tagged expenses:', error);
     } finally {
       setLoading(false);
     }
@@ -73,18 +60,6 @@ function Dashboard() {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const handleDeleteExpense = async () => {
-    try {
-      await axios.delete(`/api/expenses/${expenseToDelete}`);
-      setExpenses(expenses.filter((exp) => exp._id !== expenseToDelete));
-      setDeleteDialog(false);
-      setExpenseToDelete(null);
-      fetchData(); // Refresh balances
-    } catch (error) {
-      console.error('Error deleting expense:', error);
-    }
   };
 
   const formatCurrency = (amount) => {
@@ -103,6 +78,11 @@ function Dashboard() {
     return labels[type] || type;
   };
 
+  const getUserShare = (expense) => {
+    const userSplit = expense.splits.find(split => split.user._id === user._id);
+    return userSplit ? userSplit.amount : 0;
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar 
@@ -115,6 +95,13 @@ function Dashboard() {
         }}
       >
         <Toolbar sx={{ py: 1 }}>
+          <IconButton
+            color="inherit"
+            onClick={() => navigate('/dashboard')}
+            sx={{ mr: 2 }}
+          >
+            <ArrowBack />
+          </IconButton>
           <Receipt sx={{ mr: 2, fontSize: 28 }} />
           <Typography 
             variant="h6" 
@@ -126,7 +113,7 @@ function Dashboard() {
               fontSize: '1.4rem',
             }}
           >
-            CallItEven
+            My Expenses
           </Typography>
           <Box 
             sx={{ 
@@ -144,23 +131,6 @@ function Dashboard() {
               {user?.name}
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<LocalOffer />}
-            onClick={() => navigate('/expenses/my-tagged')}
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              mr: 1,
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.3)',
-              },
-              textTransform: 'none',
-              fontWeight: 600,
-            }}
-          >
-            My Expenses
-          </Button>
           <IconButton
             onClick={colorMode.toggleColorMode}
             sx={{
@@ -193,7 +163,7 @@ function Dashboard() {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        {/* Balance Summary */}
+        {/* Summary Card */}
         <Card 
           elevation={0}
           sx={{ 
@@ -211,90 +181,28 @@ function Dashboard() {
                 background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
+                mb: 2,
               }}
             >
-              Balance Summary
+              My Expenses
             </Typography>
-            {balances.length === 0 ? (
-              <Typography color="text.secondary">
-                No outstanding balances. Create an expense to get started!
-              </Typography>
-            ) : (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                {balances.map((balance) => (
-                  <Grid item xs={12} sm={6} md={4} key={balance.user._id}>
-                    <Card 
-                      elevation={0}
-                      sx={{
-                        height: '100%',
-                        background: balance.type === 'owes_you' 
-                          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)'
-                          : 'linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%)',
-                        border: `1px solid ${balance.type === 'owes_you' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        '&:hover': {
-                          transform: 'translateY(-4px) scale(1.02)',
-                          boxShadow: balance.type === 'owes_you'
-                            ? '0 20px 30px -10px rgba(16, 185, 129, 0.3)'
-                            : '0 20px 30px -10px rgba(239, 68, 68, 0.3)',
-                        },
-                      }}
-                    >
-                      <CardContent sx={{ p: 3 }}>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          {balance.type === 'owes_you' ? (
-                            <TrendingUp 
-                              sx={{ 
-                                mr: 1.5, 
-                                fontSize: 28,
-                                color: 'success.main',
-                              }} 
-                            />
-                          ) : (
-                            <TrendingDown 
-                              sx={{ 
-                                mr: 1.5, 
-                                fontSize: 28,
-                                color: 'error.main',
-                              }} 
-                            />
-                          )}
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              fontWeight: 600,
-                              color: balance.type === 'owes_you' ? 'success.main' : 'error.main',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em',
-                              fontSize: '0.75rem',
-                            }}
-                          >
-                            {balance.type === 'owes_you' ? 'owes you' : 'you owe'}
-                          </Typography>
-                        </Box>
-                        <Typography 
-                          variant="h5" 
-                          fontWeight="bold"
-                          sx={{ mb: 1.5, color: 'text.primary' }}
-                        >
-                          {formatCurrency(balance.amount)}
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600} sx={{ mb: 0.5 }}>
-                          {balance.user.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {balance.user.email}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
+            <Typography variant="body1" color="text.secondary">
+              View all expenses where you're included in the split. These are the expenses you're responsible for or involved in.
+            </Typography>
+            {!loading && expenses.length > 0 && (
+              <Box sx={{ mt: 3, p: 3, bgcolor: 'background.paper', borderRadius: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Total Expenses
+                </Typography>
+                <Typography variant="h4" fontWeight="bold">
+                  {expenses.length}
+                </Typography>
+              </Box>
             )}
           </CardContent>
         </Card>
 
-        {/* Recent Expenses */}
+        {/* Tagged Expenses List */}
         <Card elevation={0}>
           <CardContent sx={{ p: 4 }}>
             <Typography 
@@ -305,13 +213,13 @@ function Dashboard() {
                 mb: 3,
               }}
             >
-              Recent Expenses
+              All Expenses
             </Typography>
             {loading ? (
               <Typography>Loading...</Typography>
             ) : expenses.length === 0 ? (
               <Alert severity="info" sx={{ mt: 2 }}>
-                No expenses yet. Click the + button to create your first expense!
+                You're not tagged in any expenses yet. When someone includes you in an expense split, it will appear here.
               </Alert>
             ) : (
               <List>
@@ -329,25 +237,11 @@ function Dashboard() {
                           transform: 'translateX(8px)',
                         },
                       }}
-                      secondaryAction={
-                        expense.createdBy._id === user._id && (
-                          <IconButton
-                            edge="end"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpenseToDelete(expense._id);
-                              setDeleteDialog(true);
-                            }}
-                          >
-                            <Delete />
-                          </IconButton>
-                        )
-                      }
                       onClick={() => setSelectedExpense(expense)}
                     >
                       <ListItemText
                         primary={
-                          <Box display="flex" alignItems="center" gap={1}>
+                          <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
                             <Typography variant="body1" fontWeight="500">
                               {expense.description}
                             </Typography>
@@ -356,18 +250,29 @@ function Dashboard() {
                               size="small"
                               variant="outlined"
                             />
+                            {expense.paidBy._id === user._id && (
+                              <Chip
+                                label="You Paid"
+                                size="small"
+                                color="success"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            )}
                           </Box>
                         }
                         secondary={
                           <Box>
                             <Typography variant="body2" component="span">
-                              {formatCurrency(expense.totalAmount)} • Paid by{' '}
+                              Total: {formatCurrency(expense.totalAmount)} • Your share: {formatCurrency(getUserShare(expense))}
+                            </Typography>
+                            <Typography variant="body2" component="span" sx={{ mx: 1 }}>
+                              • Paid by{' '}
                               {expense.paidBy._id === user._id
                                 ? 'You'
                                 : expense.paidBy.name}
                             </Typography>
                             <Typography variant="caption" display="block" color="text.secondary">
-                              {new Date(expense.createdAt).toLocaleDateString()}
+                              {new Date(expense.createdAt).toLocaleDateString()} at {new Date(expense.createdAt).toLocaleTimeString()}
                             </Typography>
                           </Box>
                         }
@@ -380,26 +285,6 @@ function Dashboard() {
           </CardContent>
         </Card>
       </Container>
-
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="add"
-        sx={{ 
-          position: 'fixed', 
-          bottom: 32, 
-          right: 32,
-          width: 64,
-          height: 64,
-          background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
-          '&:hover': {
-            background: 'linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #0f766e 100%)',
-          },
-        }}
-        onClick={() => navigate('/expenses/new')}
-      >
-        <Add sx={{ fontSize: 32 }} />
-      </Fab>
 
       {/* Expense Detail Dialog */}
       <Dialog
@@ -429,6 +314,14 @@ function Dashboard() {
               </Box>
               <Box mb={2}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Your Share
+                </Typography>
+                <Typography variant="h5" fontWeight="bold" color="primary">
+                  {formatCurrency(getUserShare(selectedExpense))}
+                </Typography>
+              </Box>
+              <Box mb={2}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
                   Paid By
                 </Typography>
                 <Typography variant="body1">
@@ -446,14 +339,28 @@ function Dashboard() {
               </Box>
               <Box>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Split Details
+                  All Participants
                 </Typography>
                 <List dense>
                   {selectedExpense.splits.map((split) => (
-                    <ListItem key={split.user._id}>
+                    <ListItem 
+                      key={split.user._id}
+                      sx={{
+                        bgcolor: split.user._id === user._id ? 'rgba(6, 182, 212, 0.08)' : 'transparent',
+                        borderRadius: 1,
+                        mb: 0.5,
+                      }}
+                    >
                       <ListItemText
                         primary={
-                          split.user._id === user._id ? 'You' : split.user.name
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography>
+                              {split.user._id === user._id ? 'You' : split.user.name}
+                            </Typography>
+                            {split.user._id === user._id && (
+                              <Chip label="You" size="small" color="primary" />
+                            )}
+                          </Box>
                         }
                         secondary={split.user.email}
                       />
@@ -473,22 +380,8 @@ function Dashboard() {
           </>
         )}
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
-        <DialogTitle>Delete Expense</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this expense?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialog(false)}>Cancel</Button>
-          <Button onClick={handleDeleteExpense} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
 
-export default Dashboard;
+export default MyExpenses;
