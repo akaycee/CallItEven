@@ -82,6 +82,7 @@ router.put('/profile', protect, async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      isAdmin: user.isAdmin || false,
     });
   } catch (error) {
     console.error(error);

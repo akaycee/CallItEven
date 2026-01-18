@@ -51,6 +51,7 @@ function CreateExpense() {
   const [searchResults, setSearchResults] = useState([]);
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
+  const [categoryError, setCategoryError] = useState('');
   const [loading, setLoading] = useState(false);
   const [inviteDialog, setInviteDialog] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -65,6 +66,30 @@ function CreateExpense() {
       setCategories(data);
     } catch (error) {
       console.error('Error fetching categories:', error);
+    }
+  };
+
+  const validateCategory = async (categoryName) => {
+    // If category is in the existing list, it's valid
+    if (!categoryName || categories.includes(categoryName)) {
+      setCategoryError('');
+      return true;
+    }
+
+    // If it's a new category, check if user can create it
+    try {
+      await axios.post('/api/categories', { name: categoryName });
+      setCategoryError('');
+      // Refresh categories list
+      fetchCategories();
+      return true;
+    } catch (error) {
+      if (error.response?.data?.message === 'Invalid category') {
+        setCategoryError('Invalid category. Please select from the list.');
+        return false;
+      }
+      setCategoryError('');
+      return true;
     }
   };
 
@@ -155,6 +180,11 @@ function CreateExpense() {
       return false;
     }
 
+    if (categoryError) {
+      setError('Please select a valid category from the list');
+      return false;
+    }
+
     if (participants.length < 1) {
       setError('Please add at least one participant');
       return false;
@@ -196,11 +226,6 @@ function CreateExpense() {
     setLoading(true);
 
     try {
-      // If category is new and not empty, add it to the backend
-      if (formData.category && !categories.includes(formData.category)) {
-        await axios.post('/api/categories', { name: formData.category });
-      }
-
       const splits = calculateSplits();
       await axios.post('/api/expenses', {
         ...formData,
@@ -313,9 +338,19 @@ function CreateExpense() {
                 value={formData.category}
                 onChange={(e, value) => {
                   setFormData({ ...formData, category: value || '' });
+                  if (value) {
+                    validateCategory(value);
+                  } else {
+                    setCategoryError('');
+                  }
                 }}
                 onInputChange={async (e, value) => {
                   setFormData({ ...formData, category: value });
+                  if (value && value.trim()) {
+                    validateCategory(value);
+                  } else {
+                    setCategoryError('');
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -323,7 +358,8 @@ function CreateExpense() {
                     label="Category"
                     margin="normal"
                     placeholder="Select or type a category"
-                    helperText="Select a category or add one by typing a new name"
+                    helperText={categoryError}
+                    error={!!categoryError}
                   />
                 )}
               />

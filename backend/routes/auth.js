@@ -47,6 +47,7 @@ router.post('/register', [
       _id: user._id,
       name: user.name,
       email: user.email,
+      isAdmin: user.isAdmin || false,
       token: generateToken(user._id)
     });
   } catch (error) {
@@ -88,6 +89,7 @@ router.post('/login', [
       _id: user._id,
       name: user.name,
       email: user.email,
+      isAdmin: user.isAdmin || false,
       token: generateToken(user._id)
     });
   } catch (error) {

@@ -9,6 +9,8 @@ const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const CreateExpense = lazy(() => import('./pages/CreateExpense'));
 const EditExpense = lazy(() => import('./pages/EditExpense'));
+const ManageCategories = lazy(() => import('./pages/ManageCategories'));
+const ManageUsers = lazy(() => import('./pages/ManageUsers'));
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -35,7 +37,8 @@ const PublicRoute = ({ children }) => {
     );
   }
 
-  return user ? <Navigate to="/dashboard" /> : children;
+  // Redirect admin to manage-categories, regular users to dashboard
+  return user ? <Navigate to={user.isAdmin ? "/manage-categories" : "/dashboard"} /> : children;
 };
 
 function App() {
@@ -52,7 +55,9 @@ function App() {
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/expenses/new" element={<PrivateRoute><CreateExpense /></PrivateRoute>} />
           <Route path="/expenses/edit/:id" element={<PrivateRoute><EditExpense /></PrivateRoute>} />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route path="/manage-categories" element={<PrivateRoute><ManageCategories /></PrivateRoute>} />
+          <Route path="/manage-users" element={<PrivateRoute><ManageUsers /></PrivateRoute>} />
+          <Route path="/" element={<Navigate to="/manage-categories" />} />
         </Routes>
       </Suspense>
     </AuthProvider>

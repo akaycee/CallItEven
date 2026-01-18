@@ -45,6 +45,7 @@ import {
   Receipt,
   CalendarToday,
   LocalOffer,
+  People,
 } from '@mui/icons-material';
 import { Pie } from 'react-chartjs-2';
 import { Chart, ArcElement } from 'chart.js';
@@ -718,6 +719,22 @@ function Dashboard() {
           </ListItemIcon>
           <ListItemText sx={{ color: 'text.primary' }}>Edit Profile</ListItemText>
         </MenuItem>
+        {user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-categories'); handleProfileMenuClose(); }}>
+            <ListItemIcon>
+              <LocalOffer fontSize="small" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Manage Categories</ListItemText>
+          </MenuItem>
+        )}
+        {user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-users'); handleProfileMenuClose(); }}>
+            <ListItemIcon>
+              <People fontSize="small" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Manage Users</ListItemText>
+          </MenuItem>
+        )}
         <MenuItem onClick={handleThemeToggle}>
           <ListItemIcon>
             {theme.palette.mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}

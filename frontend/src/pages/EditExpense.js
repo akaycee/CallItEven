@@ -369,7 +369,6 @@ function EditExpense() {
                     label="Category"
                     margin="normal"
                     placeholder="Select or type a category"
-                    helperText="Select a category or add one by typing a new name"
                   />
                 )}
               />
