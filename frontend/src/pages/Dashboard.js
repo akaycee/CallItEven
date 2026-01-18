@@ -527,7 +527,13 @@ function Dashboard() {
                         value={customStartDate}
                         onChange={(e) => setCustomStartDate(e.target.value)}
                         InputLabelProps={{ shrink: true }}
-                        sx={{ width: 150 }}
+                        sx={{ 
+                          width: 150,
+                          '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                            filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+                            cursor: 'pointer',
+                          },
+                        }}
                       />
                       <TextField
                         label="End Date"
@@ -536,7 +542,13 @@ function Dashboard() {
                         value={customEndDate}
                         onChange={(e) => setCustomEndDate(e.target.value)}
                         InputLabelProps={{ shrink: true }}
-                        sx={{ width: 150 }}
+                        sx={{ 
+                          width: 150,
+                          '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                            filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
+                            cursor: 'pointer',
+                          },
+                        }}
                       />
                     </>
                   )}
