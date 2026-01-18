@@ -24,6 +24,10 @@ import {
   ListItem,
   ListItemText,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import { ArrowBack, Person, Delete, Add, Brightness4, Brightness7 } from '@mui/icons-material';
 import axios from 'axios';
@@ -48,6 +52,8 @@ function CreateExpense() {
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [inviteDialog, setInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
 
   useEffect(() => {
     fetchCategories();
@@ -82,6 +88,13 @@ function CreateExpense() {
       const participantIds = participants.map((p) => p.user._id);
       const filtered = data.filter((u) => !participantIds.includes(u._id));
       setSearchResults(filtered);
+      
+      // Check if email looks valid but no results found
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (emailRegex.test(email) && filtered.length === 0 && data.length === 0) {
+        setInviteEmail(email);
+        setInviteDialog(true);
+      }
     } catch (error) {
       console.error('Error searching users:', error);
     }
@@ -520,6 +533,89 @@ function CreateExpense() {
           </CardContent>
         </Card>
       </Container>
+
+      {/* Invite Dialog */}
+      <Dialog
+        open={inviteDialog}
+        onClose={() => setInviteDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+          },
+        }}
+      >
+        <DialogTitle sx={{
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
+          User Not Found 🤔
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            <strong>{inviteEmail}</strong> hasn't joined Call It Even yet!
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Want to split expenses together? Send them this link and get the party started! 🎉
+          </Typography>
+          <TextField
+            fullWidth
+            value={window.location.origin}
+            InputProps={{
+              readOnly: true,
+            }}
+            onClick={(e) => {
+              e.target.select();
+              navigator.clipboard.writeText(window.location.origin);
+            }}
+            helperText="Click to copy the link"
+            sx={{ mb: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button 
+            onClick={() => {
+              const subject = encodeURIComponent('Join me on Call It Even! 🎉');
+              const body = encodeURIComponent(
+                `Hey!\n\nI've been using Call It Even to track shared expenses, and I'd love to split expenses with you!\n\nIt's super easy - just sign up at:\n${window.location.origin}\n\nLooking forward to settling up together! 💰`
+              );
+              window.location.href = `mailto:${inviteEmail}?subject=${subject}&body=${body}`;
+            }}
+            variant="outlined"
+            sx={{
+              borderColor: '#06b6d4',
+              color: '#06b6d4',
+              '&:hover': {
+                borderColor: '#0891b2',
+                backgroundColor: 'rgba(6, 182, 212, 0.1)',
+              },
+            }}
+          >
+            Send Email
+          </Button>
+          <Button 
+            onClick={() => setInviteDialog(false)}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+              color: 'white',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #0891b2 0%, #059669 100%)',
+              },
+            }}
+          >
+            Got it!
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
