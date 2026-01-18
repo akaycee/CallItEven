@@ -28,6 +28,7 @@ import {
   Brightness4,
   Brightness7,
   Logout,
+  Edit,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
@@ -375,6 +376,21 @@ function MyExpenses() {
               </Box>
             </DialogContent>
             <DialogActions>
+              {selectedExpense.createdBy._id === user._id && (
+                <Button 
+                  onClick={() => {
+                    navigate(`/expenses/edit/${selectedExpense._id}`);
+                    setSelectedExpense(null);
+                  }}
+                  startIcon={<Edit />}
+                  variant="contained"
+                  sx={{
+                    background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+                  }}
+                >
+                  Edit
+                </Button>
+              )}
               <Button onClick={() => setSelectedExpense(null)}>Close</Button>
             </DialogActions>
           </>

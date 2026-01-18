@@ -138,6 +138,80 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
+// @route   PUT /api/expenses/:id
+// @desc    Update an expense
+// @access  Private
+router.put('/:id', [
+  protect,
+  body('description').trim().notEmpty().withMessage('Description is required'),
+  body('totalAmount').isFloat({ min: 0.01 }).withMessage('Total amount must be greater than 0'),
+  body('paidBy').notEmpty().withMessage('Paid by user is required'),
+  body('splitType').isIn(['equal', 'percentage', 'unequal']).withMessage('Invalid split type'),
+  body('splits').isArray({ min: 1 }).withMessage('At least one split is required')
+], async (req, res) => {
+  try {
+    // Validate request
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const expense = await Expense.findById(req.params.id);
+
+    if (!expense) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+
+    // Only creator can update the expense
+    if (!expense.createdBy.equals(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to update this expense' });
+    }
+
+    const { description, totalAmount, paidBy, splitType, splits } = req.body;
+
+    // Calculate split amounts based on split type
+    let calculatedSplits = [];
+
+    if (splitType === 'equal') {
+      const amountPerPerson = totalAmount / splits.length;
+      calculatedSplits = splits.map(split => ({
+        user: split.user,
+        amount: parseFloat(amountPerPerson.toFixed(2)),
+        percentage: parseFloat((100 / splits.length).toFixed(2))
+      }));
+    } else if (splitType === 'percentage') {
+      calculatedSplits = splits.map(split => ({
+        user: split.user,
+        amount: parseFloat((totalAmount * split.percentage / 100).toFixed(2)),
+        percentage: split.percentage
+      }));
+    } else if (splitType === 'unequal') {
+      calculatedSplits = splits.map(split => ({
+        user: split.user,
+        amount: split.amount,
+        percentage: parseFloat((split.amount / totalAmount * 100).toFixed(2))
+      }));
+    }
+
+    // Update expense fields
+    expense.description = description;
+    expense.totalAmount = totalAmount;
+    expense.paidBy = paidBy;
+    expense.splitType = splitType;
+    expense.splits = calculatedSplits;
+
+    await expense.save();
+
+    // Populate user data
+    await expense.populate('paidBy splits.user createdBy', 'name email');
+
+    res.json(expense);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // @route   DELETE /api/expenses/:id
 // @desc    Delete an expense
 // @access  Private
