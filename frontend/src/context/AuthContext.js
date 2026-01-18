@@ -23,12 +23,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('userInfo', JSON.stringify(userData));
     axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
     setUser(userData);
+    // Dispatch login event to load user's theme preference
+    window.dispatchEvent(new CustomEvent('userLogin', { detail: userData }));
   };
 
   const logout = () => {
     localStorage.removeItem('userInfo');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
+    // Dispatch logout event to reset theme
+    window.dispatchEvent(new CustomEvent('userLogout'));
   };
 
   const value = {

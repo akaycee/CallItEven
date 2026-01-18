@@ -24,7 +24,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { description, totalAmount, paidBy, splitType, splits } = req.body;
+    const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
 
     // Calculate split amounts based on split type
     let calculatedSplits = [];
@@ -57,7 +57,8 @@ router.post('/', [
       paidBy,
       splitType,
       splits: calculatedSplits,
-      createdBy: req.user._id
+      createdBy: req.user._id,
+      category: category || 'Uncategorized'
     });
 
     // Populate user data
@@ -167,7 +168,7 @@ router.put('/:id', [
       return res.status(403).json({ message: 'Not authorized to update this expense' });
     }
 
-    const { description, totalAmount, paidBy, splitType, splits } = req.body;
+    const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
 
     // Calculate split amounts based on split type
     let calculatedSplits = [];
@@ -199,6 +200,7 @@ router.put('/:id', [
     expense.paidBy = paidBy;
     expense.splitType = splitType;
     expense.splits = calculatedSplits;
+    expense.category = category || expense.category || 'Uncategorized';
 
     await expense.save();
 

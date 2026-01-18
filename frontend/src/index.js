@@ -7,13 +7,59 @@ import App from './App';
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
 
 function AppWrapper() {
-  const [mode, setMode] = useState(() => {
-    const savedMode = localStorage.getItem('themeMode');
-    return savedMode || 'light';
-  });
+  const [mode, setMode] = useState('light');
 
   useEffect(() => {
-    localStorage.setItem('themeMode', mode);
+    // Load user-specific theme preference
+    const userInfo = localStorage.getItem('userInfo');
+    if (userInfo) {
+      try {
+        const parsedUser = JSON.parse(userInfo);
+        const savedMode = localStorage.getItem(`themeMode_${parsedUser._id}`);
+        if (savedMode) {
+          setMode(savedMode);
+        }
+      } catch (error) {
+        console.error('Error loading theme preference:', error);
+      }
+    }
+
+    // Listen for login events to apply user's theme preference
+    const handleLogin = (event) => {
+      const userData = event.detail;
+      const savedMode = localStorage.getItem(`themeMode_${userData._id}`);
+      if (savedMode) {
+        setMode(savedMode);
+      } else {
+        setMode('light');
+      }
+    };
+
+    // Listen for logout events to reset theme
+    const handleLogout = () => {
+      setMode('light');
+    };
+
+    window.addEventListener('userLogin', handleLogin);
+    window.addEventListener('userLogout', handleLogout);
+    
+    return () => {
+      window.removeEventListener('userLogin', handleLogin);
+      window.removeEventListener('userLogout', handleLogout);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Save user-specific theme preference
+    const userInfo = localStorage.getItem('userInfo');
+    if (userInfo) {
+      try {
+        const parsedUser = JSON.parse(userInfo);
+        localStorage.setItem(`themeMode_${parsedUser._id}`, mode);
+      } catch (error) {
+        console.error('Error saving theme preference:', error);
+      }
+    }
   }, [mode]);
 
   const colorMode = useMemo(

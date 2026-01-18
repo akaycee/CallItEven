@@ -43,6 +43,11 @@ const expenseSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  category: {
+    type: String,
+    trim: true,
+    default: 'Uncategorized'
+  },
   createdAt: {
     type: Date,
     default: Date.now

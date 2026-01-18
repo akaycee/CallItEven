@@ -246,6 +246,14 @@ function MyExpenses() {
                             <Typography variant="body1" fontWeight="500">
                               {expense.description}
                             </Typography>
+                            {expense.category && (
+                              <Chip
+                                label={expense.category}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                              />
+                            )}
                             <Chip
                               label={getSplitTypeLabel(expense.splitType)}
                               size="small"
@@ -332,6 +340,14 @@ function MyExpenses() {
                   ({selectedExpense.paidBy.email})
                 </Typography>
               </Box>
+              {selectedExpense.category && (
+                <Box mb={2}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Category
+                  </Typography>
+                  <Chip label={selectedExpense.category} color="primary" />
+                </Box>
+              )}
               <Box mb={2}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Split Type

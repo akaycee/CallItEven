@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -40,12 +40,27 @@ function CreateExpense() {
     totalAmount: '',
     paidBy: user._id,
     splitType: 'equal',
+    category: '',
   });
   const [participants, setParticipants] = useState([{ user: user, amount: '', percentage: '' }]);
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data } = await axios.get('/api/categories');
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -168,6 +183,11 @@ function CreateExpense() {
     setLoading(true);
 
     try {
+      // If category is new and not empty, add it to the backend
+      if (formData.category && !categories.includes(formData.category)) {
+        await axios.post('/api/categories', { name: formData.category });
+      }
+
       const splits = calculateSplits();
       await axios.post('/api/expenses', {
         ...formData,
@@ -272,6 +292,27 @@ function CreateExpense() {
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 }}
                 inputProps={{ step: '0.01', min: '0.01' }}
+              />
+
+              <Autocomplete
+                freeSolo
+                options={categories}
+                value={formData.category}
+                onChange={(e, value) => {
+                  setFormData({ ...formData, category: value || '' });
+                }}
+                onInputChange={async (e, value) => {
+                  setFormData({ ...formData, category: value });
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Category"
+                    margin="normal"
+                    placeholder="Select or type a category"
+                    helperText="Select a category or add one by typing a new name"
+                  />
+                )}
               />
 
               <FormControl fullWidth margin="normal">

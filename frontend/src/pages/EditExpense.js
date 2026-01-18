@@ -40,17 +40,29 @@ function EditExpense() {
     totalAmount: '',
     paidBy: '',
     splitType: 'equal',
+    category: '',
   });
   const [participants, setParticipants] = useState([]);
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchExpense();
+    fetchCategories();
   }, [id]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data } = await axios.get('/api/categories');
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchExpense = async () => {
     try {
@@ -68,6 +80,7 @@ function EditExpense() {
         totalAmount: data.totalAmount.toString(),
         paidBy: data.paidBy._id,
         splitType: data.splitType,
+        category: data.category || '',
       });
 
       setParticipants(
@@ -206,6 +219,11 @@ function EditExpense() {
     setSubmitting(true);
 
     try {
+      // If category is new and not empty, add it to the backend
+      if (formData.category && !categories.includes(formData.category)) {
+        await axios.post('/api/categories', { name: formData.category });
+      }
+
       const splits = calculateSplits();
       await axios.put(`/api/expenses/${id}`, {
         ...formData,
@@ -333,6 +351,27 @@ function EditExpense() {
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 }}
                 inputProps={{ step: '0.01', min: '0.01' }}
+              />
+
+              <Autocomplete
+                freeSolo
+                options={categories}
+                value={formData.category}
+                onChange={(e, value) => {
+                  setFormData({ ...formData, category: value || '' });
+                }}
+                onInputChange={async (e, value) => {
+                  setFormData({ ...formData, category: value });
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Category"
+                    margin="normal"
+                    placeholder="Select or type a category"
+                    helperText="Select a category or add one by typing a new name"
+                  />
+                )}
               />
 
               <FormControl fullWidth margin="normal">
