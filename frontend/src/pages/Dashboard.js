@@ -28,6 +28,9 @@ import {
   TextField,
   FormControl,
   InputLabel,
+  Menu,
+  Avatar,
+  ListItemIcon,
 } from '@mui/material';
 import {
   Add,
@@ -69,6 +72,11 @@ function Dashboard() {
   const [dateFilter, setDateFilter] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const [editProfileDialog, setEditProfileDialog] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -90,8 +98,117 @@ function Dashboard() {
   };
 
   const handleLogout = () => {
+    setProfileMenuAnchor(null);
     logout();
     navigate('/login');
+  };
+
+  const handleProfileMenuOpen = (event) => {
+    setProfileMenuAnchor(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setProfileMenuAnchor(null);
+  };
+
+  const handleThemeToggle = () => {
+    colorMode.toggleColorMode();
+    setProfileMenuAnchor(null);
+  };
+
+  const getInitials = (name) => {
+    if (!name) return '??';
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const handleEditProfileOpen = () => {
+    setProfileForm({
+      name: user?.name || '',
+      email: user?.email || '',
+      password: '',
+      confirmPassword: '',
+    });
+    setProfileError('');
+    setProfileSuccess('');
+    setEditProfileDialog(true);
+    setProfileMenuAnchor(null);
+  };
+
+  const handleEditProfileClose = () => {
+    setEditProfileDialog(false);
+    setProfileForm({ name: '', email: '', password: '', confirmPassword: '' });
+    setProfileError('');
+    setProfileSuccess('');
+  };
+
+  const handleProfileFormChange = (e) => {
+    setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
+    setProfileError('');
+  };
+
+  const handleProfileSubmit = async () => {
+    try {
+      setProfileError('');
+      setProfileSuccess('');
+
+      // Validation
+      if (!profileForm.name.trim()) {
+        setProfileError('Name is required');
+        return;
+      }
+      if (!profileForm.email.trim()) {
+        setProfileError('Email is required');
+        return;
+      }
+      if (profileForm.password && profileForm.password !== profileForm.confirmPassword) {
+        setProfileError('Passwords do not match');
+        return;
+      }
+      if (profileForm.password && profileForm.password.length < 6) {
+        setProfileError('Password must be at least 6 characters');
+        return;
+      }
+
+      const updateData = {
+        name: profileForm.name,
+        email: profileForm.email,
+      };
+
+      if (profileForm.password) {
+        updateData.password = profileForm.password;
+      }
+
+      const response = await axios.put('/api/users/profile', updateData);
+      
+      // Update localStorage with new user data
+      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+      if (userInfo) {
+        userInfo.name = response.data.name;
+        userInfo.email = response.data.email;
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+      }
+      
+      setProfileSuccess('Profile updated successfully!');
+      
+      // Refresh user data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Profile update error:', error);
+      if (error.response?.data?.message) {
+        setProfileError(error.response.data.message);
+      } else if (error.message) {
+        setProfileError(`Failed to update profile: ${error.message}`);
+      } else {
+        setProfileError('Failed to update profile. Please try again.');
+      }
+    }
   };
 
   const handleDeleteExpense = async () => {
@@ -306,71 +423,232 @@ function Dashboard() {
         position="static" 
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 30%, #f97316 60%, #06b6d4 100%)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          borderBottom: '2px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)',
         }}
       >
-        <Toolbar sx={{ py: 1 }}>
-          <Receipt sx={{ mr: 2, fontSize: 28 }} />
-          <Typography 
-            variant="h6" 
-            component="div" 
-            sx={{ 
-              flexGrow: 1,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-              fontSize: '1.4rem',
-            }}
-          >
-            CallItEven
-          </Typography>
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
+        <Toolbar sx={{ py: 1.5, position: 'relative', zIndex: 1 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              background: 'rgba(255, 255, 255, 0.2)',
+              backdropFilter: 'blur(10px)',
               borderRadius: 3,
               px: 2,
-              py: 0.5,
-              mr: 2,
-              backdropFilter: 'blur(10px)',
+              py: 1,
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
             }}
           >
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-              {user?.name}
+            <Receipt 
+              sx={{ 
+                fontSize: 32,
+                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+              }} 
+            />
+            <Typography 
+              variant="h6" 
+              component="div" 
+              sx={{ 
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                fontSize: '1.5rem',
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              }}
+            >
+              Call It Even
             </Typography>
           </Box>
+          
+          <Box sx={{ flexGrow: 1 }} />
+          
           <IconButton
-            onClick={colorMode.toggleColorMode}
+            onClick={handleProfileMenuOpen}
             sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
-              mr: 1,
+              p: 0,
               '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.25)',
                 transform: 'scale(1.05)',
               },
-              transition: 'all 0.2s',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
-            {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
-          <IconButton
-            color="inherit"
-            onClick={handleLogout}
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.25)',
-                transform: 'scale(1.05)',
-              },
-              transition: 'all 0.2s',
-            }}
-          >
-            <Logout />
+            <Avatar
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '1.1rem',
+                border: '2px solid rgba(255, 255, 255, 0.5)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                width: 48,
+                height: 48,
+                textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+              }}
+            >
+              {getInitials(user?.name)}
+            </Avatar>
           </IconButton>
         </Toolbar>
       </AppBar>
+
+      {/* Profile Menu */}
+      <Menu
+        anchorEl={profileMenuAnchor}
+        open={Boolean(profileMenuAnchor)}
+        onClose={handleProfileMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        PaperProps={{
+          sx: {
+            mt: 1.5,
+            minWidth: 200,
+            borderRadius: 2,
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(6, 182, 212, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)',
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid',
+            borderColor: theme.palette.divider,
+          },
+        }}
+      >
+        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+            {user?.name}
+          </Typography>
+          <Typography variant="caption" sx={{ color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+            {user?.email}
+          </Typography>
+        </Box>
+        <MenuItem onClick={handleEditProfileOpen}>
+          <ListItemIcon>
+            <Edit fontSize="small" />
+          </ListItemIcon>
+          <ListItemText sx={{ color: 'text.primary' }}>Edit Profile</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleThemeToggle}>
+          <ListItemIcon>
+            {theme.palette.mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
+          </ListItemIcon>
+          <ListItemText sx={{ color: 'text.primary' }}>
+            {theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </ListItemText>
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <Logout fontSize="small" sx={{ color: '#ef4444' }} />
+          </ListItemIcon>
+          <ListItemText sx={{ color: '#ef4444' }}>Sign Out</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Edit Profile Dialog */}
+      <Dialog 
+        open={editProfileDialog} 
+        onClose={handleEditProfileClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+          },
+        }}
+      >
+        <DialogTitle sx={{ 
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
+          Edit Profile
+        </DialogTitle>
+        <DialogContent>
+          {profileError && (
+            <Alert severity="error" sx={{ mb: 2, mt: 1 }}>
+              {profileError}
+            </Alert>
+          )}
+          {profileSuccess && (
+            <Alert severity="success" sx={{ mb: 2, mt: 1 }}>
+              {profileSuccess}
+            </Alert>
+          )}
+          <TextField
+            fullWidth
+            label="Name"
+            name="name"
+            value={profileForm.name}
+            onChange={handleProfileFormChange}
+            margin="normal"
+            required
+          />
+          <TextField
+            fullWidth
+            label="Email"
+            name="email"
+            type="email"
+            value={profileForm.email}
+            onChange={handleProfileFormChange}
+            margin="normal"
+            required
+          />
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Leave password fields blank to keep current password
+          </Typography>
+          <TextField
+            fullWidth
+            label="New Password"
+            name="password"
+            type="password"
+            value={profileForm.password}
+            onChange={handleProfileFormChange}
+            margin="normal"
+            helperText="Minimum 6 characters"
+          />
+          <TextField
+            fullWidth
+            label="Confirm New Password"
+            name="confirmPassword"
+            type="password"
+            value={profileForm.confirmPassword}
+            onChange={handleProfileFormChange}
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleEditProfileClose} sx={{ color: 'text.secondary' }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleProfileSubmit}
+            variant="contained"
+            disabled={!profileForm.name || !profileForm.email}
+            sx={{
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              color: 'white',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+              },
+            }}
+          >
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         {/* Balance Summary */}
