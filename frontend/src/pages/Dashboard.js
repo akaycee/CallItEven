@@ -72,11 +72,18 @@ function Dashboard() {
   const [dateFilter, setDateFilter] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [activityFilter, setActivityFilter] = useState('all');
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const [editProfileDialog, setEditProfileDialog] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState('');
+  const [evenUpDialog, setEvenUpDialog] = useState(false);
+  const [evenUpAmount, setEvenUpAmount] = useState('');
+  const [evenUpError, setEvenUpError] = useState('');
+  const [evenUpSuccess, setEvenUpSuccess] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -211,6 +218,89 @@ function Dashboard() {
     }
   };
 
+  const handleEvenUpOpen = () => {
+    if (selectedUser) {
+      const balance = balances.find(b => b.user._id === selectedUser._id);
+      if (balance) {
+        setEvenUpAmount(balance.amount.toString());
+      }
+    }
+    setPaymentMethod('Cash');
+    setEvenUpError('');
+    setEvenUpSuccess('');
+    setEvenUpDialog(true);
+  };
+
+  const handleEvenUpClose = () => {
+    setEvenUpDialog(false);
+    setEvenUpAmount('');
+    setPaymentMethod('Cash');
+    setEvenUpError('');
+    setEvenUpSuccess('');
+  };
+
+  const handleEvenUpSubmit = async () => {
+    try {
+      setEvenUpError('');
+      setEvenUpSuccess('');
+
+      const amount = parseFloat(evenUpAmount);
+      const balance = balances.find(b => b.user._id === selectedUser._id);
+
+      if (!amount || amount <= 0) {
+        setEvenUpError('Amount must be greater than 0');
+        return;
+      }
+
+      if (amount > balance.amount) {
+        setEvenUpError(`Amount cannot exceed ${formatCurrency(balance.amount)}`);
+        return;
+      }
+
+      // Create a settlement expense
+      // The person who owes money is making the payment (paidBy)
+      // They owe $0 after paying, the other person owes the full amount
+      const settlementData = {
+        description: `Settlement with ${selectedUser.name}`,
+        totalAmount: amount,
+        paidBy: balance.type === 'you_owe' ? user._id : selectedUser._id,
+        splitType: 'unequal',
+        splits: balance.type === 'you_owe' 
+          ? [
+              { user: user._id, amount: 0 },
+              { user: selectedUser._id, amount: amount }
+            ]
+          : [
+              { user: user._id, amount: amount },
+              { user: selectedUser._id, amount: 0 }
+            ],
+        category: `Settlement - ${paymentMethod}`
+      };
+
+      await axios.post('/api/expenses', settlementData);
+
+      setEvenUpSuccess('Settlement recorded successfully!');
+      setShowCelebration(true);
+      
+      setTimeout(() => {
+        handleEvenUpClose();
+        setUserExpensesDialog(false);
+        setSelectedUser(null);
+        fetchData();
+        setTimeout(() => setShowCelebration(false), 500);
+      }, 3000);
+    } catch (error) {
+      console.error('Even up error:', error);
+      if (error.response?.data?.message) {
+        setEvenUpError(error.response.data.message);
+      } else if (error.message) {
+        setEvenUpError(`Failed to record settlement: ${error.message}`);
+      } else {
+        setEvenUpError('Failed to record settlement. Please try again.');
+      }
+    }
+  };
+
   const handleDeleteExpense = async () => {
     try {
       await axios.delete(`/api/expenses/${expenseToDelete}`);
@@ -279,7 +369,26 @@ function Dashboard() {
     const { startDate, endDate } = getDateRange();
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.createdAt);
-      return expenseDate >= startDate && expenseDate <= endDate;
+      const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;
+      const isNotSettlement = !expense.category?.startsWith('Settlement');
+      return isInDateRange && isNotSettlement;
+    });
+  };
+
+  const getFilteredActivity = () => {
+    const { startDate, endDate } = getDateRange();
+    return expenses.filter(expense => {
+      const expenseDate = new Date(expense.createdAt);
+      const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;
+      const isSettlement = expense.category?.startsWith('Settlement');
+      
+      if (activityFilter === 'expenses') {
+        return isInDateRange && !isSettlement;
+      } else if (activityFilter === 'settlements') {
+        return isInDateRange && isSettlement;
+      } else {
+        return isInDateRange; // 'all' - show everything
+      }
     });
   };
 
@@ -418,7 +527,104 @@ function Dashboard() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
+      {/* Celebration Overlay */}
+      {showCelebration && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.95) 0%, rgba(236, 72, 153, 0.95) 100%)',
+            animation: 'fadeIn 0.3s ease-in',
+            '@keyframes fadeIn': {
+              from: { opacity: 0 },
+              to: { opacity: 1 },
+            },
+            '@keyframes bounce': {
+              '0%, 100%': { transform: 'translateY(0) scale(1)' },
+              '50%': { transform: 'translateY(-20px) scale(1.1)' },
+            },
+            '@keyframes sparkle': {
+              '0%, 100%': { transform: 'scale(0) rotate(0deg)', opacity: 0 },
+              '50%': { transform: 'scale(1) rotate(180deg)', opacity: 1 },
+            },
+            '@keyframes confetti': {
+              '0%': { transform: 'translateY(-100vh) rotate(0deg)', opacity: 1 },
+              '100%': { transform: 'translateY(100vh) rotate(720deg)', opacity: 0 },
+            },
+          }}
+        >
+          {/* Confetti */}
+          {[...Array(30)].map((_, i) => (
+            <Box
+              key={i}
+              sx={{
+                position: 'absolute',
+                width: 10,
+                height: 10,
+                background: ['#f97316', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#fbbf24'][i % 6],
+                left: `${Math.random() * 100}%`,
+                animation: `confetti ${2 + Math.random() * 2}s linear infinite`,
+                animationDelay: `${Math.random() * 2}s`,
+                borderRadius: Math.random() > 0.5 ? '50%' : '0',
+              }}
+            />
+          ))}
+          
+          {/* Main Content */}
+          <Box
+            sx={{
+              textAlign: 'center',
+              position: 'relative',
+              zIndex: 1,
+              animation: 'bounce 0.6s ease-in-out',
+            }}
+          >
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '4rem', md: '6rem' },
+                fontWeight: 900,
+                color: 'white',
+                mb: 2,
+                textShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              }}
+            >
+              🎉
+            </Typography>
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: { xs: '2rem', md: '3rem' },
+                fontWeight: 800,
+                color: 'white',
+                mb: 2,
+                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+              }}
+            >
+              All Evened Up!
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                color: 'rgba(255,255,255,0.9)',
+                fontWeight: 600,
+                textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              }}
+            >
+              Payment recorded successfully ✨
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
       <AppBar 
         position="static" 
         elevation={0}
@@ -1125,7 +1331,7 @@ function Dashboard() {
           </Card>
         )}
 
-        {/* Recent Expenses */}
+        {/* Recent Activity */}
         <Card 
           elevation={0}
           sx={{ 
@@ -1134,28 +1340,40 @@ function Dashboard() {
           }}
         >
           <CardContent sx={{ p: 4 }}>
-            <Typography 
-              variant="h5" 
-              gutterBottom 
-              sx={{ 
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                mb: 3,
-              }}
-            >
-              Recent Expenses
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Recent Activity
+              </Typography>
+              <FormControl size="small" sx={{ minWidth: 160 }}>
+                <InputLabel>Show</InputLabel>
+                <Select
+                  value={activityFilter}
+                  label="Show"
+                  onChange={(e) => setActivityFilter(e.target.value)}
+                >
+                  <MenuItem value="expenses">Expenses</MenuItem>
+                  <MenuItem value="settlements">Settlements</MenuItem>
+                  <MenuItem value="all">All Activity</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
             {loading ? (
               <Typography>Loading...</Typography>
-            ) : getFilteredExpenses().length === 0 ? (
+            ) : getFilteredActivity().length === 0 ? (
               <Alert severity="info" sx={{ mt: 2 }}>
-                No expenses found for the selected time period. {expenses.length > 0 ? 'Try adjusting the date filter.' : 'Click the + button to create your first expense!'}
+                No {activityFilter === 'expenses' ? 'expenses' : activityFilter === 'settlements' ? 'settlements' : 'activity'} found for the selected time period. {expenses.length > 0 ? 'Try adjusting the date filter.' : 'Click the + button to create your first expense!'}
               </Alert>
             ) : (
               <List>
-                {getFilteredExpenses().map((expense, index) => (
+                {getFilteredActivity().map((expense, index) => (
                   <React.Fragment key={expense._id}>
                     {index > 0 && <Divider />}
                     <ListItem
@@ -1498,6 +1716,21 @@ function Dashboard() {
               )}
             </DialogContent>
             <DialogActions>
+              {selectedUser && balances.find(b => b.user._id === selectedUser._id) && (
+                <Button
+                  onClick={handleEvenUpOpen}
+                  variant="contained"
+                  sx={{
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                    },
+                  }}
+                >
+                  Even Up
+                </Button>
+              )}
               <Button
                 onClick={() => {
                   setUserExpensesDialog(false);
@@ -1509,6 +1742,109 @@ function Dashboard() {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      {/* Even Up Dialog */}
+      <Dialog
+        open={evenUpDialog}
+        onClose={handleEvenUpClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+          },
+        }}
+      >
+        <DialogTitle sx={{
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
+          Even Up with {selectedUser?.name}
+        </DialogTitle>
+        <DialogContent>
+          {evenUpError && (
+            <Alert severity="error" sx={{ mb: 2, mt: 1 }}>
+              {evenUpError}
+            </Alert>
+          )}
+          {evenUpSuccess && (
+            <Alert severity="success" sx={{ mb: 2, mt: 1 }}>
+              {evenUpSuccess}
+            </Alert>
+          )}
+          {selectedUser && balances.find(b => b.user._id === selectedUser._id) && (
+            <>
+              <Box sx={{ mb: 3, mt: 2 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Current Balance
+                </Typography>
+                <Typography variant="h5" fontWeight="bold" sx={{ mb: 1 }}>
+                  {formatCurrency(balances.find(b => b.user._id === selectedUser._id).amount)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {balances.find(b => b.user._id === selectedUser._id).type === 'you_owe'
+                    ? `You owe ${selectedUser.name}`
+                    : `${selectedUser.name} owes you`}
+                </Typography>
+              </Box>
+              <TextField
+                fullWidth
+                label="Settlement Amount"
+                type="number"
+                value={evenUpAmount}
+                onChange={(e) => setEvenUpAmount(e.target.value)}
+                inputProps={{
+                  min: 0.01,
+                  max: balances.find(b => b.user._id === selectedUser._id).amount,
+                  step: 0.01,
+                }}
+                helperText={`Enter amount between $0.01 and ${formatCurrency(balances.find(b => b.user._id === selectedUser._id).amount)}`}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth>
+                <InputLabel>Payment Method</InputLabel>
+                <Select
+                  value={paymentMethod}
+                  label="Payment Method"
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  <MenuItem value="Cash">Cash</MenuItem>
+                  <MenuItem value="Zelle">Zelle</MenuItem>
+                  <MenuItem value="Venmo">Venmo</MenuItem>
+                  <MenuItem value="PayPal">PayPal</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleEvenUpClose} sx={{ color: 'text.secondary' }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEvenUpSubmit}
+            variant="contained"
+            disabled={!evenUpAmount || parseFloat(evenUpAmount) <= 0}
+            sx={{
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              color: 'white',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+              },
+            }}
+          >
+            Record Settlement
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Category Expenses Dialog */}
