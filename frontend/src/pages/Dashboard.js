@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -7,10 +7,6 @@ import {
   Toolbar,
   Typography,
   Button,
-  Card,
-  CardContent,
-  Grid,
-  Chip,
   IconButton,
   Fab,
   Dialog,
@@ -23,34 +19,43 @@ import {
   Divider,
   Alert,
   useTheme,
-  Select,
-  MenuItem,
-  TextField,
-  FormControl,
-  InputLabel,
+  CircularProgress,
   Menu,
   Avatar,
   ListItemIcon,
+  Chip,
+  Card,
+  CardContent,
+  Grid,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Add,
   Logout,
-  Receipt,
-  TrendingUp,
-  TrendingDown,
-  Delete,
   Brightness4,
   Brightness7,
-  LocalOffer,
   Edit,
+  AccountBalance,
+  Person,
+  Delete,
+  Receipt,
   CalendarToday,
+  LocalOffer,
 } from '@mui/icons-material';
-import { Chart, ArcElement } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
+import { Chart, ArcElement } from 'chart.js';
 import axios from 'axios';
+import { FullCelebration, PartialCelebration } from '../components/CelebrationOverlay';
+import { BalanceSummaryCard } from '../components/BalanceSummaryCard';
+import { ExpenseSummaryCard } from '../components/ExpenseSummaryCard';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 
+// Register Chart.js components
 Chart.register(ArcElement);
 
 function Dashboard() {
@@ -595,200 +600,9 @@ function Dashboard() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', position: 'relative' }}>
       {/* Celebration Overlay */}
-      {showCelebration && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.95) 0%, rgba(236, 72, 153, 0.95) 100%)',
-            animation: 'fadeIn 0.3s ease-in',
-            '@keyframes fadeIn': {
-              from: { opacity: 0 },
-              to: { opacity: 1 },
-            },
-            '@keyframes bounce': {
-              '0%, 100%': { transform: 'translateY(0) scale(1)' },
-              '50%': { transform: 'translateY(-20px) scale(1.1)' },
-            },
-            '@keyframes sparkle': {
-              '0%, 100%': { transform: 'scale(0) rotate(0deg)', opacity: 0 },
-              '50%': { transform: 'scale(1) rotate(180deg)', opacity: 1 },
-            },
-            '@keyframes confetti': {
-              '0%': { transform: 'translateY(-100vh) rotate(0deg)', opacity: 1 },
-              '100%': { transform: 'translateY(100vh) rotate(720deg)', opacity: 0 },
-            },
-          }}
-        >
-          {/* Confetti */}
-          {[...Array(30)].map((_, i) => (
-            <Box
-              key={i}
-              sx={{
-                position: 'absolute',
-                width: 10,
-                height: 10,
-                background: ['#f97316', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#fbbf24'][i % 6],
-                left: `${Math.random() * 100}%`,
-                animation: `confetti ${2 + Math.random() * 2}s linear infinite`,
-                animationDelay: `${Math.random() * 2}s`,
-                borderRadius: Math.random() > 0.5 ? '50%' : '0',
-              }}
-            />
-          ))}
-          
-          {/* Main Content */}
-          <Box
-            sx={{
-              textAlign: 'center',
-              position: 'relative',
-              zIndex: 1,
-              animation: 'bounce 0.6s ease-in-out',
-            }}
-          >
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: '4rem', md: '6rem' },
-                fontWeight: 900,
-                color: 'white',
-                mb: 2,
-                textShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              }}
-            >
-              🎉
-            </Typography>
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: { xs: '2rem', md: '3rem' },
-                fontWeight: 800,
-                color: 'white',
-                mb: 2,
-                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-              }}
-            >
-              All Evened Up!
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{
-                color: 'rgba(255,255,255,0.9)',
-                fontWeight: 600,
-                textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              }}
-            >
-              Payment recorded successfully ✨
-            </Typography>
-          </Box>
-        </Box>
-      )}
-
-      {/* Partial Settlement Celebration */}
-      {showPartialCelebration && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.95) 0%, rgba(6, 182, 212, 0.95) 100%)',
-            animation: 'fadeIn 0.3s ease-in',
-            '@keyframes fadeIn': {
-              from: { opacity: 0 },
-              to: { opacity: 1 },
-            },
-            '@keyframes slideIn': {
-              from: { transform: 'translateX(-100vw) rotate(-20deg)' },
-              to: { transform: 'translateX(0) rotate(0deg)' },
-            },
-            '@keyframes wiggle': {
-              '0%, 100%': { transform: 'rotate(-5deg)' },
-              '50%': { transform: 'rotate(5deg)' },
-            },
-            '@keyframes float': {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-20px)' },
-            },
-          }}
-        >
-          {/* Floating coins */}
-          {[...Array(15)].map((_, i) => (
-            <Box
-              key={i}
-              sx={{
-                position: 'absolute',
-                fontSize: '2rem',
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animation: `float ${2 + Math.random()}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 2}s`,
-                opacity: 0.7,
-              }}
-            >
-              💰
-            </Box>
-          ))}
-          
-          {/* Main Content */}
-          <Box
-            sx={{
-              textAlign: 'center',
-              position: 'relative',
-              zIndex: 1,
-              animation: 'slideIn 0.6s ease-out',
-            }}
-          >
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: '4rem', md: '6rem' },
-                fontWeight: 900,
-                color: 'white',
-                mb: 2,
-                textShadow: '0 4px 20px rgba(0,0,0,0.3)',
-                animation: 'wiggle 1s ease-in-out infinite',
-              }}
-            >
-              💸
-            </Typography>
-            <Typography
-              variant="h2"
-              sx={{
-                fontSize: { xs: '2rem', md: '3rem' },
-                fontWeight: 800,
-                color: 'white',
-                mb: 2,
-                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-              }}
-            >
-              Progress! Cha-ching!
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{
-                color: 'rgba(255,255,255,0.9)',
-                fontWeight: 600,
-                textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              }}
-            >
-              Every little bit counts! 🎯
-            </Typography>
-          </Box>
-        </Box>
-      )}
+      {/* Celebration Overlays */}
+      <FullCelebration show={showCelebration} />
+      <PartialCelebration show={showPartialCelebration} />
 
       <AppBar 
         position="static" 
@@ -1023,281 +837,25 @@ function Dashboard() {
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         {/* Balance Summary */}
-        <Card 
-          elevation={0}
-          sx={{ 
-            mb: 4,
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)',
-            border: '1px solid rgba(6, 182, 212, 0.2)',
-          }}
-        >
-          <CardContent sx={{ p: 4 }}>
-            <Typography 
-              variant="h5" 
-              gutterBottom 
-              sx={{ 
-                fontWeight: 800,
-                background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              Balance Summary
-            </Typography>
-            {balances.length === 0 ? (
-              <Typography color="text.secondary">
-                No outstanding balances. Create an expense to get started!
-              </Typography>
-            ) : (
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                {balances.map((balance) => (
-                  <Grid item xs={12} sm={6} md={4} key={balance.user._id}>
-                    <Card 
-                      elevation={0}
-                      onClick={() => handleUserClick(balance)}
-                      sx={{
-                        height: '100%',
-                        cursor: 'pointer',
-                        background: balance.type === 'owes_you' 
-                          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)'
-                          : 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
-                        border: `1px solid ${balance.type === 'owes_you' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(249, 115, 22, 0.4)'}`,
-                        backdropFilter: 'blur(10px)',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                        '&:hover': {
-                          transform: 'translateY(-4px) scale(1.02)',
-                          boxShadow: balance.type === 'owes_you'
-                            ? '0 20px 30px -10px rgba(16, 185, 129, 0.5)'
-                            : '0 20px 30px -10px rgba(249, 115, 22, 0.5)',
-                        },
-                      }}
-                    >
-                      <CardContent sx={{ p: 3 }}>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          {balance.type === 'owes_you' ? (
-                            <TrendingUp 
-                              sx={{ 
-                                mr: 1.5, 
-                                fontSize: 28,
-                                color: '#10b981',
-                              }} 
-                            />
-                          ) : (
-                            <TrendingDown 
-                              sx={{ 
-                                mr: 1.5, 
-                                fontSize: 28,
-                                color: '#f97316',
-                              }} 
-                            />
-                          )}
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              fontWeight: 600,
-                              color: balance.type === 'owes_you' ? '#10b981' : '#f97316',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em',
-                              fontSize: '0.75rem',
-                            }}
-                          >
-                            {balance.type === 'owes_you' ? 'owes you' : 'you owe'}
-                          </Typography>
-                        </Box>
-                        <Typography 
-                          variant="h5" 
-                          fontWeight="bold"
-                          sx={{ mb: 1.5, color: 'text.primary' }}
-                        >
-                          {formatCurrency(balance.amount)}
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600} sx={{ mb: 0.5 }}>
-                          {balance.user.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {balance.user.email}
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            )}
-          </CardContent>
-        </Card>
+        <BalanceSummaryCard 
+          balances={balances}
+          formatCurrency={formatCurrency}
+          handleUserClick={handleUserClick}
+        />
 
         {/* Expense Statistics Summary */}
         {!loading && expenses.length > 0 && (
-          <Card 
-            elevation={0}
-            sx={{ 
-              mb: 4,
-              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%)',
-              border: '1px solid rgba(139, 92, 246, 0.2)',
+          <ExpenseSummaryCard
+            expenseStats={expenseStats}
+            dateFilter={dateFilter}
+            onDateFilterChange={(e) => setDateFilter(e.target.value)}
+            customDates={{ startDate: customStartDate, endDate: customEndDate }}
+            onCustomDateChange={(e) => {
+              if (e.target.name === 'startDate') setCustomStartDate(e.target.value);
+              else setCustomEndDate(e.target.value);
             }}
-          >
-            <CardContent sx={{ p: 4 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-                <Typography 
-                  variant="h5" 
-                  sx={{ 
-                    fontWeight: 800,
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
-                  Expense Summary
-                </Typography>
-                
-                {/* Date Filter */}
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>Time Period</InputLabel>
-                    <Select
-                      value={dateFilter}
-                      label="Time Period"
-                      onChange={(e) => setDateFilter(e.target.value)}
-                      startAdornment={<CalendarToday sx={{ mr: 1, fontSize: 20, color: 'action.active' }} />}
-                    >
-                      <MenuItem value="today">Today</MenuItem>
-                      <MenuItem value="week">Last 7 Days</MenuItem>
-                      <MenuItem value="month">This Month</MenuItem>
-                      <MenuItem value="year">This Year</MenuItem>
-                      <MenuItem value="custom">Custom Range</MenuItem>
-                    </Select>
-                  </FormControl>
-                  
-                  {dateFilter === 'custom' && (
-                    <>
-                      <TextField
-                        label="Start Date"
-                        type="date"
-                        size="small"
-                        value={customStartDate}
-                        onChange={(e) => setCustomStartDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ 
-                          width: 150,
-                          '& input[type="date"]::-webkit-calendar-picker-indicator': {
-                            filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
-                            cursor: 'pointer',
-                          },
-                        }}
-                      />
-                      <TextField
-                        label="End Date"
-                        type="date"
-                        size="small"
-                        value={customEndDate}
-                        onChange={(e) => setCustomEndDate(e.target.value)}
-                        InputLabelProps={{ shrink: true }}
-                        sx={{ 
-                          width: 150,
-                          '& input[type="date"]::-webkit-calendar-picker-indicator': {
-                            filter: theme.palette.mode === 'dark' ? 'invert(1)' : 'none',
-                            cursor: 'pointer',
-                          },
-                        }}
-                      />
-                    </>
-                  )}
-                </Box>
-              </Box>
-              <Grid container spacing={2}>
-                <Grid item xs={6} sm={4} md={2.4}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'background.paper', 
-                      borderRadius: 2,
-                      textAlign: 'center',
-                      height: '100%',
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      Total Expenses
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#8b5cf6', mt: 1 }}>
-                      {getExpenseStats().totalCount}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2.4}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'background.paper', 
-                      borderRadius: 2,
-                      textAlign: 'center',
-                      height: '100%',
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      Total Amount
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#ec4899', mt: 1 }}>
-                      {formatCurrency(getExpenseStats().totalAmount)}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2.4}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'background.paper', 
-                      borderRadius: 2,
-                      textAlign: 'center',
-                      height: '100%',
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      Your Share
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#06b6d4', mt: 1 }}>
-                      {formatCurrency(getExpenseStats().yourShare)}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2.4}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'background.paper', 
-                      borderRadius: 2,
-                      textAlign: 'center',
-                      height: '100%',
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      Categories
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#f97316', mt: 1 }}>
-                      {getExpenseStats().categoriesUsed}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={6} sm={4} md={2.4}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'background.paper', 
-                      borderRadius: 2,
-                      textAlign: 'center',
-                      height: '100%',
-                    }}
-                  >
-                    <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      Largest
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#ef4444', mt: 1 }}>
-                      {formatCurrency(getExpenseStats().largestExpense)}
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+            formatCurrency={formatCurrency}
+          />
         )}
 
         {/* Category Breakdown Pie Chart */}

@@ -290,7 +290,7 @@ router.get('/balance/summary', protect, async (req, res) => {
         name: balance.user.name,
         email: balance.user.email
       },
-      amount: parseFloat(balance.amount.toFixed(2)),
+      amount: Math.abs(parseFloat(balance.amount.toFixed(2))),
       type: balance.amount > 0 ? 'owes_you' : 'you_owe'
     })).filter(b => Math.abs(b.amount) > 0.01);
 
