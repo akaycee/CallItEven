@@ -719,6 +719,12 @@ function Dashboard() {
           </ListItemIcon>
           <ListItemText sx={{ color: 'text.primary' }}>Edit Profile</ListItemText>
         </MenuItem>
+        <MenuItem onClick={() => { navigate('/manage-groups'); handleProfileMenuClose(); }}>
+          <ListItemIcon>
+            <People fontSize="small" />
+          </ListItemIcon>
+          <ListItemText sx={{ color: 'text.primary' }}>My Groups</ListItemText>
+        </MenuItem>
         {user?.isAdmin && (
           <MenuItem onClick={() => { navigate('/manage-categories'); handleProfileMenuClose(); }}>
             <ListItemIcon>

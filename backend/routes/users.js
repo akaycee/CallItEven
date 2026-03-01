@@ -18,7 +18,8 @@ router.get('/search', protect, async (req, res) => {
     // Search for users with email containing the search term
     const users = await User.find({
       email: { $regex: email, $options: 'i' },
-      _id: { $ne: req.user._id } // Exclude current user
+      _id: { $ne: req.user._id }, // Exclude current user
+      isAdmin: { $ne: true } // Exclude admin users
     })
     .select('-password')
     .limit(10);

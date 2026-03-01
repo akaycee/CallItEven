@@ -50,6 +50,8 @@ function CreateExpense() {
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const [error, setError] = useState('');
   const [categoryError, setCategoryError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,7 @@ function CreateExpense() {
 
   useEffect(() => {
     fetchCategories();
+    fetchGroups();
   }, []);
 
   const fetchCategories = async () => {
@@ -66,6 +69,15 @@ function CreateExpense() {
       setCategories(data);
     } catch (error) {
       console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const { data } = await axios.get('/api/groups');
+      setGroups(data || []);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
     }
   };
 
@@ -399,6 +411,49 @@ function CreateExpense() {
                 <Typography variant="h6" gutterBottom fontWeight={700}>
                   Participants
                 </Typography>
+
+                {/* Group Selection */}
+                {groups.length > 0 && (
+                  <Autocomplete
+                    options={groups}
+                    getOptionLabel={(option) => `${option.name} (${option.members.length} members)`}
+                    value={selectedGroup}
+                    onChange={(e, value) => {
+                      setSelectedGroup(value);
+                      if (value) {
+                        // Auto-populate participants from group
+                        const groupParticipants = value.members.map(member => ({
+                          user: member,
+                          amount: '',
+                          percentage: ''
+                        }));
+                        setParticipants(groupParticipants);
+                      } else {
+                        // Reset to just current user
+                        setParticipants([{ user: user, amount: '', percentage: '' }]);
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Use a group (optional)"
+                        margin="normal"
+                        helperText="Select a group to auto-add all members"
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props}>
+                        <Box>
+                          <Typography variant="body1" fontWeight="600">{option.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {option.members.map(m => m.name).join(', ')}
+                          </Typography>
+                        </Box>
+                      </li>
+                    )}
+                    sx={{ mb: 2 }}
+                  />
+                )}
 
                 {/* Search for users */}
                 <Autocomplete

@@ -2,6 +2,8 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const PendingGroupInvite = require('../models/PendingGroupInvite');
+const Group = require('../models/Group');
 
 const router = express.Router();
 
@@ -41,6 +43,24 @@ router.post('/register', [
       email,
       password
     });
+
+    // Check for pending group invitations and add user to those groups
+    const pendingInvites = await PendingGroupInvite.find({ email: email.toLowerCase() }).populate('group');
+    
+    if (pendingInvites.length > 0) {
+      // Add user to all groups they were invited to
+      for (const invite of pendingInvites) {
+        if (invite.group && !invite.group.members.includes(user._id)) {
+          await Group.findByIdAndUpdate(
+            invite.group._id,
+            { $addToSet: { members: user._id } }
+          );
+        }
+      }
+      
+      // Delete all pending invitations for this email
+      await PendingGroupInvite.deleteMany({ email: email.toLowerCase() });
+    }
 
     // Return user data with token
     res.status(201).json({

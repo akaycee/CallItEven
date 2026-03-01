@@ -26,6 +26,27 @@ router.post('/', [
 
     const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
 
+    // Validate that paidBy user exists and is not admin
+    const paidByUser = await User.findById(paidBy);
+    if (!paidByUser) {
+      return res.status(400).json({ message: 'Invalid paidBy user' });
+    }
+    if (paidByUser.isAdmin) {
+      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
+    }
+
+    // Validate all split users exist and are not admin
+    const splitUserIds = splits.map(s => s.user);
+    const splitUsers = await User.find({ _id: { $in: splitUserIds } });
+    
+    if (splitUsers.length !== splitUserIds.length) {
+      return res.status(400).json({ message: 'Invalid user in splits' });
+    }
+    
+    if (splitUsers.some(u => u.isAdmin)) {
+      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
+    }
+
     // Calculate split amounts based on split type
     let calculatedSplits = [];
 
@@ -63,6 +84,7 @@ router.post('/', [
 
     // Populate user data
     await expense.populate('paidBy splits.user createdBy', 'name email');
+    await expense.populate('group', 'name members');
 
     res.status(201).json(expense);
   } catch (error) {
@@ -84,6 +106,7 @@ router.get('/', protect, async (req, res) => {
       ]
     })
     .populate('paidBy splits.user createdBy', 'name email')
+    .populate('group', 'name members')
     .sort({ createdAt: -1 });
 
     res.json(expenses);
@@ -102,6 +125,7 @@ router.get('/tagged', protect, async (req, res) => {
       'splits.user': req.user._id
     })
     .populate('paidBy splits.user createdBy', 'name email')
+    .populate('group', 'name members')
     .sort({ createdAt: -1 });
 
     res.json(expenses);
@@ -117,7 +141,8 @@ router.get('/tagged', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const expense = await Expense.findById(req.params.id)
-      .populate('paidBy splits.user createdBy', 'name email');
+      .populate('paidBy splits.user createdBy', 'name email')
+    .populate('group', 'name members');
 
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
@@ -170,6 +195,27 @@ router.put('/:id', [
 
     const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
 
+    // Validate that paidBy user exists and is not admin
+    const paidByUser = await User.findById(paidBy);
+    if (!paidByUser) {
+      return res.status(400).json({ message: 'Invalid paidBy user' });
+    }
+    if (paidByUser.isAdmin) {
+      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
+    }
+
+    // Validate all split users exist and are not admin
+    const splitUserIds = splits.map(s => s.user);
+    const splitUsers = await User.find({ _id: { $in: splitUserIds } });
+    
+    if (splitUsers.length !== splitUserIds.length) {
+      return res.status(400).json({ message: 'Invalid user in splits' });
+    }
+    
+    if (splitUsers.some(u => u.isAdmin)) {
+      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
+    }
+
     // Calculate split amounts based on split type
     let calculatedSplits = [];
 
@@ -206,6 +252,7 @@ router.put('/:id', [
 
     // Populate user data
     await expense.populate('paidBy splits.user createdBy', 'name email');
+    await expense.populate('group', 'name members');
 
     res.json(expense);
   } catch (error) {

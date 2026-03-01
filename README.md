@@ -170,6 +170,57 @@ CallItEven/
 └── README.md
 ```
 
+## Running Tests
+
+The project includes a comprehensive test suite with **275 tests** covering both backend and frontend to prevent regressions when adding new features.
+
+### Backend Tests (172 tests)
+
+Uses **Jest**, **Supertest**, and **mongodb-memory-server** (in-memory MongoDB for isolated testing).
+
+```bash
+cd backend
+
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+**What's covered:**
+- **Model tests** — Schema validation, password hashing, split-amount validation, min-members check, compound indexes
+- **Middleware tests** — JWT auth (valid/invalid/expired tokens, 401 responses), admin role gating (403 responses)
+- **Route integration tests** — All 25 API endpoints including:
+  - Auth: registration, login, pending invite auto-resolve
+  - Users: search (excludes admins), profile update, password change
+  - Expenses: CRUD for all 3 split types, balance summary calculation, admin exclusion
+  - Categories: default/custom categories, admin-only create/delete, expense reassignment
+  - Groups: CRUD, pending invites for unknown emails, creator-only permissions
+  - Admin: user management, cascade delete, platform stats
+
+### Frontend Tests (103 tests)
+
+Uses **Jest** (via react-scripts) and **React Testing Library**.
+
+```bash
+cd frontend
+
+# Run all tests
+npm test
+
+# Run tests once (no watch mode, useful for CI)
+npx react-scripts test --watchAll=false
+
+# Run a specific test file
+npx react-scripts test --testPathPattern="Login.test"
+```
+
+**What's covered:**
+- **Component tests** — BalanceSummaryCard, ExpenseSummaryCard, RecentActivityList, CelebrationOverlay, EditProfileDialog, EvenUpDialog
+- **Page tests** — Login, Register, Dashboard, CreateExpense, EditExpense, ManageGroups, ManageCategories, ManageUsers
+- Form rendering, validation (password mismatch, min length), API calls, error display, auth redirects, admin-only access
+
 ## Security Features
 
 - Passwords are hashed using bcryptjs before storage

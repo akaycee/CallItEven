@@ -11,6 +11,7 @@ const CreateExpense = lazy(() => import('./pages/CreateExpense'));
 const EditExpense = lazy(() => import('./pages/EditExpense'));
 const ManageCategories = lazy(() => import('./pages/ManageCategories'));
 const ManageUsers = lazy(() => import('./pages/ManageUsers'));
+const ManageGroups = lazy(() => import('./pages/ManageGroups'));
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -57,6 +58,7 @@ function App() {
           <Route path="/expenses/edit/:id" element={<PrivateRoute><EditExpense /></PrivateRoute>} />
           <Route path="/manage-categories" element={<PrivateRoute><ManageCategories /></PrivateRoute>} />
           <Route path="/manage-users" element={<PrivateRoute><ManageUsers /></PrivateRoute>} />
+          <Route path="/manage-groups" element={<PrivateRoute><ManageGroups /></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/manage-categories" />} />
         </Routes>
       </Suspense>

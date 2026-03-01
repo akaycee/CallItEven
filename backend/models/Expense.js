@@ -48,6 +48,10 @@ const expenseSchema = new mongoose.Schema({
     trim: true,
     default: 'Uncategorized'
   },
+  group: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Group'
+  },
   createdAt: {
     type: Date,
     default: Date.now
