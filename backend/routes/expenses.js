@@ -25,26 +25,38 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
+    const { description, totalAmount, paidBy, splitType, splits, category, isPersonal } = req.body;
 
-    // Validate that paidBy and split users exist and are not admin
-    const validation = await validateExpenseUsers(paidBy, splits, User);
-    if (!validation.valid) {
-      return res.status(400).json({ message: validation.error });
+    let calculatedSplits;
+
+    if (isPersonal) {
+      // Personal expense: auto-assign single split to the current user
+      calculatedSplits = [{
+        user: req.user._id,
+        amount: parseFloat(totalAmount),
+        percentage: 100
+      }];
+    } else {
+      // Validate that paidBy and split users exist and are not admin
+      const validation = await validateExpenseUsers(paidBy, splits, User);
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.error });
+      }
+
+      // Calculate split amounts based on split type
+      calculatedSplits = calculateSplits(totalAmount, splitType, splits);
     }
-
-    // Calculate split amounts based on split type
-    const calculatedSplits = calculateSplits(totalAmount, splitType, splits);
 
     // Create expense
     const expense = await Expense.create({
       description,
       totalAmount,
-      paidBy,
-      splitType,
+      paidBy: isPersonal ? req.user._id : paidBy,
+      splitType: isPersonal ? 'equal' : splitType,
       splits: calculatedSplits,
       createdBy: req.user._id,
-      category: category || 'Uncategorized'
+      category: category || 'Uncategorized',
+      isPersonal: !!isPersonal
     });
 
     // Populate user data
@@ -72,6 +84,25 @@ router.get('/', protect, async (req, res) => {
     })
     .populate('paidBy splits.user createdBy', 'name email')
     .populate('group', 'name members')
+    .sort({ createdAt: -1 });
+
+    res.json(expenses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/expenses/personal
+// @desc    Get all personal (non-split) expenses for the current user
+// @access  Private
+router.get('/personal', protect, async (req, res) => {
+  try {
+    const expenses = await Expense.find({
+      createdBy: req.user._id,
+      isPersonal: true
+    })
+    .populate('paidBy splits.user createdBy', 'name email')
     .sort({ createdAt: -1 });
 
     res.json(expenses);
@@ -158,24 +189,36 @@ router.put('/:id', [
       return res.status(403).json({ message: 'Not authorized to update this expense' });
     }
 
-    const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
+    const { description, totalAmount, paidBy, splitType, splits, category, isPersonal } = req.body;
 
-    // Validate that paidBy and split users exist and are not admin
-    const validation = await validateExpenseUsers(paidBy, splits, User);
-    if (!validation.valid) {
-      return res.status(400).json({ message: validation.error });
+    let calculatedSplits;
+
+    if (isPersonal) {
+      // Personal expense: auto-assign single split to the current user
+      calculatedSplits = [{
+        user: req.user._id,
+        amount: parseFloat(totalAmount),
+        percentage: 100
+      }];
+    } else {
+      // Validate that paidBy and split users exist and are not admin
+      const validation = await validateExpenseUsers(paidBy, splits, User);
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.error });
+      }
+
+      // Calculate split amounts based on split type
+      calculatedSplits = calculateSplits(totalAmount, splitType, splits);
     }
-
-    // Calculate split amounts based on split type
-    const calculatedSplits = calculateSplits(totalAmount, splitType, splits);
 
     // Update expense fields
     expense.description = description;
     expense.totalAmount = totalAmount;
-    expense.paidBy = paidBy;
-    expense.splitType = splitType;
+    expense.paidBy = isPersonal ? req.user._id : paidBy;
+    expense.splitType = isPersonal ? 'equal' : splitType;
     expense.splits = calculatedSplits;
     expense.category = category || expense.category || 'Uncategorized';
+    expense.isPersonal = !!isPersonal;
 
     await expense.save();
 

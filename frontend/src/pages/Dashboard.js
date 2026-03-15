@@ -32,6 +32,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
   Add,
@@ -40,6 +42,7 @@ import {
   Brightness7,
   Edit,
   AccountBalance,
+  AccountBalanceWallet,
   Person,
   Delete,
   Receipt,
@@ -53,6 +56,7 @@ import axios from 'axios';
 import { FullCelebration, PartialCelebration } from '../components/CelebrationOverlay';
 import { BalanceSummaryCard } from '../components/BalanceSummaryCard';
 import { ExpenseSummaryCard } from '../components/ExpenseSummaryCard';
+import BudgetOverview from '../components/BudgetOverview';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 
@@ -91,6 +95,8 @@ function Dashboard() {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [showCelebration, setShowCelebration] = useState(false);
   const [showPartialCelebration, setShowPartialCelebration] = useState(false);
+  const [budgetSummary, setBudgetSummary] = useState([]);
+  const [expenseTypeFilter, setExpenseTypeFilter] = useState('all');
 
   useEffect(() => {
     fetchData();
@@ -98,12 +104,14 @@ function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const [expensesRes, balancesRes] = await Promise.all([
+      const [expensesRes, balancesRes, budgetRes] = await Promise.all([
         axios.get('/api/expenses'),
         axios.get('/api/expenses/balance/summary'),
+        axios.get('/api/budgets/summary'),
       ]);
       setExpenses(expensesRes.data);
       setBalances(balancesRes.data);
+      setBudgetSummary(budgetRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -338,7 +346,9 @@ function Dashboard() {
     }).format(Math.abs(amount));
   };
 
-  const getSplitTypeLabel = (type) => {
+  const getSplitTypeLabel = (expense) => {
+    if (expense?.isPersonal) return 'Personal';
+    const type = typeof expense === 'string' ? expense : expense?.splitType;
     const labels = {
       equal: 'Split Equally',
       percentage: 'By Percentage',
@@ -389,9 +399,18 @@ function Dashboard() {
       const expenseDate = new Date(expense.createdAt);
       const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;
       const isNotSettlement = !expense.category?.startsWith('Settlement');
-      return isInDateRange && isNotSettlement;
+      
+      // Expense type filter
+      let matchesType = true;
+      if (expenseTypeFilter === 'personal') {
+        matchesType = !!expense.isPersonal;
+      } else if (expenseTypeFilter === 'shared') {
+        matchesType = !expense.isPersonal;
+      }
+      
+      return isInDateRange && isNotSettlement && matchesType;
     });
-  }, [expenses, dateFilter, customStartDate, customEndDate]);
+  }, [expenses, dateFilter, customStartDate, customEndDate, expenseTypeFilter]);
 
   const filteredActivity = useMemo(() => {
     const { startDate, endDate } = getDateRange();
@@ -725,6 +744,14 @@ function Dashboard() {
           </ListItemIcon>
           <ListItemText sx={{ color: 'text.primary' }}>My Groups</ListItemText>
         </MenuItem>
+        {!user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-budgets'); handleProfileMenuClose(); }}>
+            <ListItemIcon>
+              <AccountBalanceWallet fontSize="small" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Manage Budgets</ListItemText>
+          </MenuItem>
+        )}
         {user?.isAdmin && (
           <MenuItem onClick={() => { navigate('/manage-categories'); handleProfileMenuClose(); }}>
             <ListItemIcon>
@@ -868,6 +895,35 @@ function Dashboard() {
 
         {/* Expense Statistics Summary */}
         {!loading && expenses.length > 0 && (
+          <>
+          {/* Expense Type Filter */}
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+            <ToggleButtonGroup
+              value={expenseTypeFilter}
+              exclusive
+              onChange={(e, value) => { if (value !== null) setExpenseTypeFilter(value); }}
+              size="small"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  px: 3,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  '&.Mui-selected': {
+                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                    },
+                  },
+                },
+              }}
+            >
+              <ToggleButton value="all">All Expenses</ToggleButton>
+              <ToggleButton value="shared">Shared</ToggleButton>
+              <ToggleButton value="personal">Personal</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
           <ExpenseSummaryCard
             expenseStats={expenseStats}
             dateFilter={dateFilter}
@@ -879,6 +935,17 @@ function Dashboard() {
             }}
             formatCurrency={formatCurrency}
           />
+
+          {/* Budget Overview */}
+          <BudgetOverview
+            budgetSummary={budgetSummary}
+            formatCurrency={formatCurrency}
+            onCategoryClick={(category) => {
+              setSelectedCategory(category);
+              setCategoryDialog(true);
+            }}
+          />
+          </>
         )}
 
         {/* Category Breakdown Pie Chart */}
@@ -1133,9 +1200,10 @@ function Dashboard() {
                               />
                             )}
                             <Chip
-                              label={getSplitTypeLabel(expense.splitType)}
+                              label={getSplitTypeLabel(expense)}
                               size="small"
                               variant="outlined"
+                              color={expense.isPersonal ? 'success' : 'default'}
                             />
                           </Box>
                         }
@@ -1254,10 +1322,14 @@ function Dashboard() {
               )}
               <Box mb={2}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Split Type
+                  {selectedExpense.isPersonal ? 'Type' : 'Split Type'}
                 </Typography>
-                <Chip label={getSplitTypeLabel(selectedExpense.splitType)} />
+                <Chip
+                  label={getSplitTypeLabel(selectedExpense)}
+                  color={selectedExpense.isPersonal ? 'success' : 'default'}
+                />
               </Box>
+              {!selectedExpense.isPersonal && (
               <Box>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Split Details
@@ -1280,6 +1352,7 @@ function Dashboard() {
                   ))}
                 </List>
               </Box>
+              )}
             </DialogContent>
             <DialogActions>
               {selectedExpense.createdBy._id === user._id && (
@@ -1402,9 +1475,10 @@ function Dashboard() {
                                 />
                               )}
                               <Chip
-                                label={getSplitTypeLabel(expense.splitType)}
+                                label={getSplitTypeLabel(expense)}
                                 size="small"
                                 variant="outlined"
+                                color={expense.isPersonal ? 'success' : 'default'}
                               />
                             </Box>
                           }
@@ -1614,9 +1688,10 @@ function Dashboard() {
                                 {expense.description}
                               </Typography>
                               <Chip
-                                label={getSplitTypeLabel(expense.splitType)}
+                                label={getSplitTypeLabel(expense)}
                                 size="small"
                                 variant="outlined"
+                                color={expense.isPersonal ? 'success' : 'default'}
                               />
                               {expense.createdBy._id === user._id && (
                                 <IconButton

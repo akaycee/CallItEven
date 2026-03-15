@@ -539,4 +539,104 @@ describe('Expense Routes', () => {
       expect(res.body).toHaveLength(0);
     });
   });
+
+  describe('POST /api/expenses (personal)', () => {
+    it('should create a personal expense with isPersonal flag', async () => {
+      const res = await request(app)
+        .post('/api/expenses')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({
+          description: 'Coffee',
+          totalAmount: 5,
+          paidBy: user1._id,
+          splitType: 'equal',
+          splits: [{ user: user1._id }],
+          category: 'Food & Dining',
+          isPersonal: true,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.isPersonal).toBe(true);
+      expect(res.body.splits).toHaveLength(1);
+      expect(res.body.splits[0].amount).toBe(5);
+      expect(res.body.splits[0].user._id).toBe(user1._id.toString());
+      expect(res.body.paidBy._id).toBe(user1._id.toString());
+    });
+
+    it('should auto-set paidBy and splits for personal expense', async () => {
+      const res = await request(app)
+        .post('/api/expenses')
+        .set('Authorization', `Bearer ${token1}`)
+        .send({
+          description: 'Personal grocery',
+          totalAmount: 50,
+          paidBy: user2._id, // should be overridden
+          splitType: 'percentage',
+          splits: [{ user: user2._id, percentage: 100 }], // should be overridden
+          isPersonal: true,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.paidBy._id).toBe(user1._id.toString());
+      expect(res.body.splits[0].user._id).toBe(user1._id.toString());
+      expect(res.body.splits[0].amount).toBe(50);
+    });
+  });
+
+  describe('GET /api/expenses/personal', () => {
+    beforeEach(async () => {
+      // Create a personal expense for user1
+      await Expense.create({
+        description: 'Personal coffee',
+        totalAmount: 5,
+        paidBy: user1._id,
+        splitType: 'equal',
+        splits: [{ user: user1._id, amount: 5, percentage: 100 }],
+        createdBy: user1._id,
+        category: 'Food & Dining',
+        isPersonal: true,
+      });
+
+      // Create a shared expense for user1
+      await Expense.create({
+        description: 'Shared dinner',
+        totalAmount: 100,
+        paidBy: user1._id,
+        splitType: 'equal',
+        splits: [
+          { user: user1._id, amount: 50 },
+          { user: user2._id, amount: 50 },
+        ],
+        createdBy: user1._id,
+        category: 'Food & Dining',
+      });
+
+      // Create a personal expense for user2
+      await Expense.create({
+        description: 'User2 personal',
+        totalAmount: 20,
+        paidBy: user2._id,
+        splitType: 'equal',
+        splits: [{ user: user2._id, amount: 20, percentage: 100 }],
+        createdBy: user2._id,
+        isPersonal: true,
+      });
+    });
+
+    it('should return only personal expenses for the current user', async () => {
+      const res = await request(app)
+        .get('/api/expenses/personal')
+        .set('Authorization', `Bearer ${token1}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].description).toBe('Personal coffee');
+      expect(res.body[0].isPersonal).toBe(true);
+    });
+
+    it('should return 401 without auth token', async () => {
+      const res = await request(app).get('/api/expenses/personal');
+      expect(res.status).toBe(401);
+    });
+  });
 });

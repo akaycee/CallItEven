@@ -28,6 +28,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import { ArrowBack, Person, Delete, Add, Brightness4, Brightness7 } from '@mui/icons-material';
 import axios from 'axios';
@@ -57,6 +59,7 @@ function CreateExpense() {
   const [loading, setLoading] = useState(false);
   const [inviteDialog, setInviteDialog] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [isPersonal, setIsPersonal] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -197,6 +200,11 @@ function CreateExpense() {
       return false;
     }
 
+    // Skip participant/split validation for personal expenses
+    if (isPersonal) {
+      return true;
+    }
+
     if (participants.length < 1) {
       setError('Please add at least one participant');
       return false;
@@ -238,11 +246,14 @@ function CreateExpense() {
     setLoading(true);
 
     try {
-      const splits = calculateSplits();
+      const splits = isPersonal
+        ? [{ user: user._id, amount: parseFloat(formData.totalAmount), percentage: 100 }]
+        : calculateSplits();
       await axios.post('/api/expenses', {
         ...formData,
         totalAmount: parseFloat(formData.totalAmount),
         splits,
+        isPersonal,
       });
       navigate('/dashboard');
     } catch (err) {
@@ -376,6 +387,27 @@ function CreateExpense() {
                 )}
               />
 
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isPersonal}
+                    onChange={(e) => {
+                      setIsPersonal(e.target.checked);
+                      if (e.target.checked) {
+                        // Reset to just current user when switching to personal
+                        setParticipants([{ user: user, amount: '', percentage: '' }]);
+                        setSelectedGroup(null);
+                      }
+                    }}
+                    color="primary"
+                  />
+                }
+                label="Personal Expense (not split with anyone)"
+                sx={{ mt: 2, mb: 1 }}
+              />
+
+              {!isPersonal && (
+              <>
               <FormControl fullWidth margin="normal">
                 <InputLabel>Paid By</InputLabel>
                 <Select
@@ -585,6 +617,8 @@ function CreateExpense() {
                   ))}
                 </List>
               </Box>
+              </>
+              )}
 
               {/* Submit Button */}
               <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>

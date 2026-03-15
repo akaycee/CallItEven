@@ -65,6 +65,7 @@ export const ExpenseSummaryCard = ({
   return (
     <Card
       sx={{
+        mb: 4,
         background: theme.palette.mode === 'dark'
           ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
           : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',

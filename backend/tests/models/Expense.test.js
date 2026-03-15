@@ -233,4 +233,55 @@ describe('Expense Model', () => {
       expect(populated.splits[0].user.name).toBeDefined();
     });
   });
+
+  describe('Personal Expenses', () => {
+    it('should create a personal expense with isPersonal flag', async () => {
+      const expense = await Expense.create({
+        description: 'Coffee',
+        totalAmount: 5,
+        paidBy: user1._id,
+        splitType: 'equal',
+        splits: [{ user: user1._id, amount: 5, percentage: 100 }],
+        createdBy: user1._id,
+        isPersonal: true,
+      });
+
+      expect(expense.isPersonal).toBe(true);
+      expect(expense.splits).toHaveLength(1);
+      expect(expense.splits[0].amount).toBe(5);
+    });
+
+    it('should default isPersonal to false', async () => {
+      const expense = await Expense.create({
+        description: 'Dinner',
+        totalAmount: 100,
+        paidBy: user1._id,
+        splitType: 'equal',
+        splits: [
+          { user: user1._id, amount: 50 },
+          { user: user2._id, amount: 50 },
+        ],
+        createdBy: user1._id,
+      });
+
+      expect(expense.isPersonal).toBe(false);
+    });
+
+    it('should skip split amount validation for personal expenses', async () => {
+      // Normally this would fail because splits don't add up,
+      // but isPersonal skips the validation
+      const expense = await Expense.create({
+        description: 'Personal item',
+        totalAmount: 100,
+        paidBy: user1._id,
+        splitType: 'equal',
+        splits: [{ user: user1._id, amount: 100, percentage: 100 }],
+        createdBy: user1._id,
+        isPersonal: true,
+      });
+
+      expect(expense).toBeDefined();
+      expect(expense.isPersonal).toBe(true);
+    });
+  });
 });

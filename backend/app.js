@@ -8,6 +8,7 @@ const expenseRoutes = require('./routes/expenses');
 const categoryRoutes = require('./routes/categories');
 const adminRoutes = require('./routes/admin');
 const groupRoutes = require('./routes/groups');
+const budgetRoutes = require('./routes/budgets');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/budgets', budgetRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

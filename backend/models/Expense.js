@@ -48,6 +48,10 @@ const expenseSchema = new mongoose.Schema({
     trim: true,
     default: 'Uncategorized'
   },
+  isPersonal: {
+    type: Boolean,
+    default: false
+  },
   group: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Group'
@@ -60,6 +64,11 @@ const expenseSchema = new mongoose.Schema({
 
 // Validate that splits add up correctly
 expenseSchema.pre('save', function(next) {
+  // Skip split validation for personal expenses (single user, full amount)
+  if (this.isPersonal) {
+    return next();
+  }
+
   const totalSplitAmount = this.splits.reduce((sum, split) => sum + split.amount, 0);
   
   // Allow small rounding errors (within 0.01)

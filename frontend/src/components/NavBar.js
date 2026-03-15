@@ -23,6 +23,7 @@ import {
   People,
   LocalOffer,
   Receipt,
+  AccountBalanceWallet,
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
@@ -215,6 +216,13 @@ const NavBar = ({
           <MenuItem onClick={() => { navigate('/manage-groups'); handleMenuClose(); }}>
             <ListItemIcon><People fontSize="small" /></ListItemIcon>
             <ListItemText sx={{ color: 'text.primary' }}>My Groups</ListItemText>
+          </MenuItem>
+        )}
+
+        {showLogo && !user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-budgets'); handleMenuClose(); }}>
+            <ListItemIcon><AccountBalanceWallet fontSize="small" /></ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Manage Budgets</ListItemText>
           </MenuItem>
         )}
 

@@ -1,18 +1,27 @@
 # CallItEven
 
-A modern expense splitting web application built with the MERN stack and Material Design. Split bills easily with friends, roommates, or colleagues.
+A modern expense splitting and personal budgeting web application built with the MERN stack and Material Design. Split bills with friends, track your own spending, and stay on budget.
 
 ## Features
 
 - 🔐 **User Authentication** - Secure email-based registration and login with JWT
 - 👥 **User Search** - Find and add other users by their email address
-- 💰 **Expense Management** - Create, view, and delete expenses
+- 💰 **Expense Management** - Create, edit, view, and delete expenses
+- 🧍 **Personal Expenses** - Track your own spending without splitting with anyone
 - 📊 **Three Split Methods**:
   - **Equal Split** - Divide expenses equally among all participants
   - **Percentage Split** - Assign custom percentages to each person
   - **Unequal Split** - Enter exact amounts for each participant
 - 📈 **Balance Summary** - Track who owes you and who you owe
+- 💵 **Monthly Budgets** - Set per-category spending limits and track progress
+  - Budgets track your share of all expenses (personal + shared)
+  - Color-coded progress bars (green/amber/red)
+  - Click to drill into expenses by category
 - 🎨 **Material Design UI** - Clean, modern interface with Material-UI components
+- 🌗 **Dark/Light Mode** - Toggle between themes
+- 👥 **Groups** - Organize participants into groups for recurring splits
+- 🏷️ **Categories** - Categorize expenses with default and custom categories
+- 🎉 **Settlements** - Record payments to even up balances
 
 ## Tech Stack
 
@@ -128,11 +137,21 @@ The application will open at `http://localhost:3000` and the API will run on `ht
 - `GET /api/users/profile` - Get current user profile
 
 ### Expenses
-- `POST /api/expenses` - Create new expense
+- `POST /api/expenses` - Create new expense (supports `isPersonal` flag)
 - `GET /api/expenses` - Get all expenses for current user
+- `GET /api/expenses/personal` - Get only personal (non-split) expenses
+- `GET /api/expenses/tagged` - Get expenses where user is tagged in splits
 - `GET /api/expenses/:id` - Get single expense by ID
+- `PUT /api/expenses/:id` - Update expense
 - `DELETE /api/expenses/:id` - Delete expense
 - `GET /api/expenses/balance/summary` - Get balance summary
+
+### Budgets
+- `GET /api/budgets` - Get all budgets for current user
+- `POST /api/budgets` - Create a monthly budget for a category
+- `PUT /api/budgets/:id` - Update budget amount
+- `DELETE /api/budgets/:id` - Delete a budget
+- `GET /api/budgets/summary` - Get budget vs actual spending for the current month
 
 ## Project Structure
 
@@ -142,28 +161,57 @@ CallItEven/
 │   ├── config/
 │   │   └── db.js
 │   ├── middleware/
-│   │   └── auth.js
+│   │   ├── auth.js
+│   │   └── admin.js
 │   ├── models/
 │   │   ├── User.js
-│   │   └── Expense.js
+│   │   ├── Expense.js
+│   │   ├── Category.js
+│   │   ├── Group.js
+│   │   ├── Budget.js
+│   │   └── PendingGroupInvite.js
 │   ├── routes/
 │   │   ├── auth.js
 │   │   ├── users.js
-│   │   └── expenses.js
-│   ├── .env.example
-│   ├── package.json
-│   └── server.js
+│   │   ├── expenses.js
+│   │   ├── categories.js
+│   │   ├── groups.js
+│   │   ├── budgets.js
+│   │   └── admin.js
+│   ├── tests/
+│   ├── utils/
+│   │   └── helpers.js
+│   ├── app.js
+│   ├── server.js
+│   └── package.json
 ├── frontend/
 │   ├── public/
 │   │   └── index.html
 │   ├── src/
+│   │   ├── components/
+│   │   │   ├── BalanceSummaryCard.js
+│   │   │   ├── BudgetOverview.js
+│   │   │   ├── CategoryPieChart.js
+│   │   │   ├── CelebrationOverlay.js
+│   │   │   ├── EditProfileDialog.js
+│   │   │   ├── EvenUpDialog.js
+│   │   │   ├── ExpenseSummaryCard.js
+│   │   │   ├── LoadingScreen.js
+│   │   │   ├── NavBar.js
+│   │   │   └── RecentActivityList.js
 │   │   ├── context/
 │   │   │   └── AuthContext.js
 │   │   ├── pages/
 │   │   │   ├── Login.js
 │   │   │   ├── Register.js
 │   │   │   ├── Dashboard.js
-│   │   │   └── CreateExpense.js
+│   │   │   ├── CreateExpense.js
+│   │   │   ├── EditExpense.js
+│   │   │   ├── ManageBudgets.js
+│   │   │   ├── ManageCategories.js
+│   │   │   ├── ManageGroups.js
+│   │   │   ├── ManageUsers.js
+│   │   │   └── NotFound.js
 │   │   ├── App.js
 │   │   └── index.js
 │   └── package.json
@@ -172,9 +220,9 @@ CallItEven/
 
 ## Running Tests
 
-The project includes a comprehensive test suite with **275 tests** covering both backend and frontend to prevent regressions when adding new features.
+The project includes a comprehensive test suite with **331 tests** covering both backend and frontend to prevent regressions when adding new features.
 
-### Backend Tests (172 tests)
+### Backend Tests (211 tests)
 
 Uses **Jest**, **Supertest**, and **mongodb-memory-server** (in-memory MongoDB for isolated testing).
 
@@ -189,17 +237,18 @@ npm run test:watch
 ```
 
 **What's covered:**
-- **Model tests** — Schema validation, password hashing, split-amount validation, min-members check, compound indexes
+- **Model tests** — Schema validation, password hashing, split-amount validation, min-members check, compound indexes, `isPersonal` flag behavior, Budget unique constraints
 - **Middleware tests** — JWT auth (valid/invalid/expired tokens, 401 responses), admin role gating (403 responses)
-- **Route integration tests** — All 25 API endpoints including:
+- **Route integration tests** — All API endpoints including:
   - Auth: registration, login, pending invite auto-resolve
   - Users: search (excludes admins), profile update, password change
-  - Expenses: CRUD for all 3 split types, balance summary calculation, admin exclusion
+  - Expenses: CRUD for all 3 split types, personal expenses, balance summary calculation, admin exclusion
   - Categories: default/custom categories, admin-only create/delete, expense reassignment
   - Groups: CRUD, pending invites for unknown emails, creator-only permissions
+  - Budgets: CRUD, category validation, owner-only access, monthly summary with personal + shared expense aggregation
   - Admin: user management, cascade delete, platform stats
 
-### Frontend Tests (103 tests)
+### Frontend Tests (120 tests)
 
 Uses **Jest** (via react-scripts) and **React Testing Library**.
 
@@ -217,9 +266,9 @@ npx react-scripts test --testPathPattern="Login.test"
 ```
 
 **What's covered:**
-- **Component tests** — BalanceSummaryCard, ExpenseSummaryCard, RecentActivityList, CelebrationOverlay, EditProfileDialog, EvenUpDialog
-- **Page tests** — Login, Register, Dashboard, CreateExpense, EditExpense, ManageGroups, ManageCategories, ManageUsers
-- Form rendering, validation (password mismatch, min length), API calls, error display, auth redirects, admin-only access
+- **Component tests** — BalanceSummaryCard, ExpenseSummaryCard, RecentActivityList, CelebrationOverlay, EditProfileDialog, EvenUpDialog, BudgetOverview
+- **Page tests** — Login, Register, Dashboard, CreateExpense, EditExpense, ManageGroups, ManageCategories, ManageUsers, ManageBudgets
+- Form rendering, validation (password mismatch, min length), API calls, error display, auth redirects, admin-only access, personal expense toggle, budget progress bars
 
 ## Security Features
 
@@ -231,13 +280,14 @@ npx react-scripts test --testPathPattern="Login.test"
 ## Future Enhancements
 
 - User profile pictures
-- Expense categories and tags
 - Payment history and settlement tracking
-- Group expense management
 - Email notifications
 - Export to CSV/PDF
 - Multi-currency support
 - Mobile responsive improvements
+- Budget alerts/notifications when approaching limits
+- Weekly/yearly budget periods
+- Recurring expenses
 
 ## Contributing
 
