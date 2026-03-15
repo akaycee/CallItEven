@@ -95,23 +95,72 @@ function Dashboard() {
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [showCelebration, setShowCelebration] = useState(false);
   const [showPartialCelebration, setShowPartialCelebration] = useState(false);
-  const [budgetSummary, setBudgetSummary] = useState([]);
   const [expenseTypeFilter, setExpenseTypeFilter] = useState('all');
+  const [budgetSummary, setBudgetSummary] = useState([]);
+
+  const getBudgetDateRange = () => {
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (dateFilter) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'week':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+        endDate = new Date(now);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now.getFullYear(), 11, 31);
+        break;
+      case 'custom':
+        startDate = customStartDate ? new Date(customStartDate) : new Date(0);
+        endDate = customEndDate ? new Date(customEndDate) : new Date();
+        break;
+      default:
+        startDate = new Date(0);
+        endDate = new Date();
+    }
+
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  };
+
+  const fetchBudgetSummary = async () => {
+    try {
+      const { startDate, endDate } = getBudgetDateRange();
+      const { data } = await axios.get(`/api/budgets/summary?startDate=${startDate}&endDate=${endDate}`);
+      setBudgetSummary(data);
+    } catch (error) {
+      console.error('Error fetching budget summary:', error);
+    }
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    fetchBudgetSummary();
+  }, [dateFilter, customStartDate, customEndDate]);
+
   const fetchData = async () => {
     try {
-      const [expensesRes, balancesRes, budgetRes] = await Promise.all([
+      const [expensesRes, balancesRes] = await Promise.all([
         axios.get('/api/expenses'),
         axios.get('/api/expenses/balance/summary'),
-        axios.get('/api/budgets/summary'),
       ]);
       setExpenses(expensesRes.data);
       setBalances(balancesRes.data);
-      setBudgetSummary(budgetRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -310,6 +359,7 @@ function Dashboard() {
         setUserExpensesDialog(false);
         setSelectedUser(null);
         fetchData();
+        fetchBudgetSummary();
         setTimeout(() => {
           setShowCelebration(false);
           setShowPartialCelebration(false);
@@ -334,6 +384,7 @@ function Dashboard() {
       setDeleteDialog(false);
       setExpenseToDelete(null);
       fetchData(); // Refresh balances
+      fetchBudgetSummary();
     } catch (error) {
       console.error('Error deleting expense:', error);
     }

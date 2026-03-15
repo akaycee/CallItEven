@@ -19,9 +19,9 @@ const BudgetOverview = ({ budgetSummary = [], formatCurrency, onCategoryClick })
 
   const getProgressColor = (spent, budget) => {
     const ratio = spent / budget;
-    if (ratio > 1) return '#ef4444';     // red — over budget
-    if (ratio > 0.75) return '#f59e0b';  // amber — approaching
-    return '#10b981';                     // green — healthy
+    if (ratio > 1) return '#ef4444';
+    if (ratio > 0.75) return '#f59e0b';
+    return '#10b981';
   };
 
   const getProgressValue = (spent, budget) => {
@@ -49,7 +49,7 @@ const BudgetOverview = ({ budgetSummary = [], formatCurrency, onCategoryClick })
               WebkitTextFillColor: 'transparent',
             }}
           >
-            Monthly Budgets
+            Budgets
           </Typography>
         </Box>
 

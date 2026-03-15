@@ -1,23 +1,24 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import axios from 'axios';
 import App from './App';
 
 export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
 
 function AppWrapper() {
   const [mode, setMode] = useState('light');
+  const savingRef = useRef(false);
 
   useEffect(() => {
-    // Load user-specific theme preference
+    // Load theme from stored user info on mount
     const userInfo = localStorage.getItem('userInfo');
     if (userInfo) {
       try {
         const parsedUser = JSON.parse(userInfo);
-        const savedMode = localStorage.getItem(`themeMode_${parsedUser._id}`);
-        if (savedMode) {
-          setMode(savedMode);
+        if (parsedUser.themeMode) {
+          setMode(parsedUser.themeMode);
         }
       } catch (error) {
         console.error('Error loading theme preference:', error);
@@ -27,17 +28,12 @@ function AppWrapper() {
     // Listen for login events to apply user's theme preference
     const handleLogin = (event) => {
       const userData = event.detail;
-      const savedMode = localStorage.getItem(`themeMode_${userData._id}`);
-      if (savedMode) {
-        setMode(savedMode);
-      } else {
-        setMode('light');
-      }
+      setMode(userData.themeMode || 'light');
     };
 
-    // Listen for logout events to reset theme
+    // Listen for logout events — keep current theme until next login
     const handleLogout = () => {
-      setMode('light');
+      // Don't reset theme — the next login will set the correct preference
     };
 
     window.addEventListener('userLogin', handleLogin);
@@ -49,23 +45,34 @@ function AppWrapper() {
     };
   }, []);
 
-  useEffect(() => {
-    // Save user-specific theme preference
-    const userInfo = localStorage.getItem('userInfo');
-    if (userInfo) {
-      try {
-        const parsedUser = JSON.parse(userInfo);
-        localStorage.setItem(`themeMode_${parsedUser._id}`, mode);
-      } catch (error) {
-        console.error('Error saving theme preference:', error);
-      }
-    }
-  }, [mode]);
-
   const colorMode = useMemo(
     () => ({
       toggleColorMode: () => {
-        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+        setMode((prevMode) => {
+          const newMode = prevMode === 'light' ? 'dark' : 'light';
+          
+          // Save to database
+          const userInfo = localStorage.getItem('userInfo');
+          if (userInfo) {
+            try {
+              const parsedUser = JSON.parse(userInfo);
+              // Update localStorage immediately for instant feedback
+              parsedUser.themeMode = newMode;
+              localStorage.setItem('userInfo', JSON.stringify(parsedUser));
+              
+              // Save to database in background
+              if (parsedUser.token) {
+                axios.put('/api/users/theme', { themeMode: newMode }, {
+                  headers: { Authorization: `Bearer ${parsedUser.token}` }
+                }).catch(err => console.error('Error saving theme:', err));
+              }
+            } catch (error) {
+              console.error('Error saving theme preference:', error);
+            }
+          }
+
+          return newMode;
+        });
       },
     }),
     [],

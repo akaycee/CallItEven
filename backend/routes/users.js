@@ -38,7 +38,13 @@ router.get('/search', protect, async (req, res) => {
 router.get('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password');
-    res.json(user);
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin || false,
+      themeMode: user.themeMode || 'light',
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -85,7 +91,30 @@ router.put('/profile', protect, async (req, res) => {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin || false,
+      themeMode: user.themeMode || 'light',
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/users/theme
+// @desc    Update user theme preference
+// @access  Private
+router.put('/theme', protect, async (req, res) => {
+  try {
+    const { themeMode } = req.body;
+
+    if (!themeMode || !['light', 'dark'].includes(themeMode)) {
+      return res.status(400).json({ message: 'Invalid theme mode' });
+    }
+
+    const user = await User.findById(req.user._id);
+    user.themeMode = themeMode;
+    await user.save();
+
+    res.json({ themeMode: user.themeMode });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

@@ -68,6 +68,7 @@ router.post('/register', [
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin || false,
+      themeMode: user.themeMode || 'light',
       token: generateToken(user._id)
     });
   } catch (error) {
@@ -110,6 +111,7 @@ router.post('/login', [
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin || false,
+      themeMode: user.themeMode || 'light',
       token: generateToken(user._id)
     });
   } catch (error) {

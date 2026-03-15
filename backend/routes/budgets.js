@@ -54,15 +54,21 @@ router.get('/summary', protect, async (req, res) => {
       return res.json([]);
     }
 
-    // Get current month date range
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    // Determine date range from query params or default to current month
+    let startDate, endDate;
+    if (req.query.startDate && req.query.endDate) {
+      startDate = new Date(req.query.startDate + 'T00:00:00.000Z');
+      endDate = new Date(req.query.endDate + 'T23:59:59.999Z');
+    } else {
+      const now = new Date();
+      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+    }
 
-    // Get all expenses where the user is in splits, within the current month
+    // Get all expenses where the user is in splits, within the date range
     const expenses = await Expense.find({
       'splits.user': req.user._id,
-      createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+      createdAt: { $gte: startDate, $lte: endDate },
       category: { $not: /^Settlement/ }
     });
 

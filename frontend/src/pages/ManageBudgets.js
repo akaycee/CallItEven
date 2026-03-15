@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -51,6 +51,9 @@ function ManageBudgets() {
   const [expenses, setExpenses] = useState([]);
   const [categoryExpensesDialog, setCategoryExpensesDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [budgetDateFilter, setBudgetDateFilter] = useState('month');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const timeoutRefs = useRef([]);
 
   useEffect(() => {
@@ -65,13 +68,60 @@ function ManageBudgets() {
     fetchData();
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (user) fetchData();
+  }, [budgetDateFilter, customStart, customEnd]);
+
+  const getDateRange = useCallback(() => {
+    const now = new Date();
+    let startDate, endDate;
+    switch (budgetDateFilter) {
+      case 'today':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate = new Date(now);
+        break;
+      case 'week':
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7);
+        endDate = new Date(now);
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = new Date(now);
+        break;
+      case 'custom':
+        if (customStart && customEnd) {
+          startDate = new Date(customStart);
+          endDate = new Date(customEnd);
+        } else {
+          return null;
+        }
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    }
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+    };
+  }, [budgetDateFilter, customStart, customEnd]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       setError('');
+      const range = getDateRange();
+      const summaryParams = range
+        ? `?startDate=${range.startDate}&endDate=${range.endDate}`
+        : '';
       const [budgetsRes, summaryRes, categoriesRes, expensesRes] = await Promise.all([
         axios.get('/api/budgets'),
-        axios.get('/api/budgets/summary'),
+        axios.get(`/api/budgets/summary${summaryParams}`),
         axios.get('/api/categories'),
         axios.get('/api/expenses'),
       ]);
@@ -182,15 +232,17 @@ function ManageBudgets() {
     return userSplit ? userSplit.amount : 0;
   };
 
-  const getCurrentMonthExpensesByCategory = (category) => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const getFilteredExpensesByCategory = (category) => {
+    const range = getDateRange();
+    if (!range) return [];
+    const startDate = new Date(range.startDate);
+    const endDate = new Date(range.endDate);
+    endDate.setHours(23, 59, 59, 999);
     return expenses.filter(exp => {
       const expDate = new Date(exp.createdAt);
       return (exp.category || 'Uncategorized') === category
-        && expDate >= startOfMonth
-        && expDate <= endOfMonth
+        && expDate >= startDate
+        && expDate <= endDate
         && !exp.category?.startsWith('Settlement')
         && exp.splits?.some(s => s.user?._id === user._id);
     });
@@ -231,7 +283,7 @@ function ManageBudgets() {
           }}
         >
           <CardContent sx={{ p: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
               <Typography
                 variant="h5"
                 sx={{
@@ -241,27 +293,63 @@ function ManageBudgets() {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                Monthly Budgets
+                Budgets
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => setAddDialog(true)}
-                disabled={availableCategories.length === 0}
-                sx={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)',
-                  },
-                }}
-              >
-                Add Budget
-              </Button>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <FormControl size="small" sx={{ minWidth: 130 }}>
+                  <Select
+                    value={budgetDateFilter}
+                    onChange={(e) => setBudgetDateFilter(e.target.value)}
+                    sx={{ fontWeight: 600, fontSize: '0.85rem' }}
+                  >
+                    <MenuItem value="today">Today</MenuItem>
+                    <MenuItem value="week">This Week</MenuItem>
+                    <MenuItem value="month">This Month</MenuItem>
+                    <MenuItem value="year">This Year</MenuItem>
+                    <MenuItem value="custom">Custom</MenuItem>
+                  </Select>
+                </FormControl>
+                {budgetDateFilter === 'custom' && (
+                  <>
+                    <TextField
+                      type="date"
+                      size="small"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      sx={{ width: 150 }}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                    <Typography variant="body2" color="text.secondary">to</Typography>
+                    <TextField
+                      type="date"
+                      size="small"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      sx={{ width: 150 }}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </>
+                )}
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => setAddDialog(true)}
+                  disabled={availableCategories.length === 0}
+                  sx={{
+                    background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)',
+                    },
+                  }}
+                >
+                  Add Budget
+                </Button>
+              </Box>
             </Box>
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Set monthly spending limits per category. Budgets track your share of all expenses (personal and shared).
+              Set spending limits per category. Budgets track your share of all expenses (personal and shared).
             </Typography>
 
             {loading ? (
@@ -571,20 +659,20 @@ function ManageBudgets() {
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                {selectedCategory} — This Month
+                {selectedCategory}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Expenses counting toward your budget
               </Typography>
             </DialogTitle>
             <DialogContent dividers>
-              {getCurrentMonthExpensesByCategory(selectedCategory).length === 0 ? (
+              {getFilteredExpensesByCategory(selectedCategory).length === 0 ? (
                 <Typography color="text.secondary" sx={{ py: 2 }}>
-                  No expenses in this category this month.
+                  No expenses in this category for the selected period.
                 </Typography>
               ) : (
                 <List>
-                  {getCurrentMonthExpensesByCategory(selectedCategory).map((expense, index) => (
+                  {getFilteredExpensesByCategory(selectedCategory).map((expense, index) => (
                     <React.Fragment key={expense._id}>
                       {index > 0 && <Divider />}
                       <ListItem

@@ -33,7 +33,7 @@ describe('BudgetOverview', () => {
       <BudgetOverview budgetSummary={summary} formatCurrency={formatCurrency} />
     );
 
-    expect(screen.getByText('Monthly Budgets')).toBeInTheDocument();
+    expect(screen.getByText('Budgets')).toBeInTheDocument();
     expect(screen.getByText('Food & Dining')).toBeInTheDocument();
     expect(screen.getByText('Transportation')).toBeInTheDocument();
   });
@@ -87,7 +87,7 @@ describe('BudgetOverview', () => {
 
     const progressBar = screen.getByRole('progressbar');
     expect(progressBar).toBeInTheDocument();
-    expect(progressBar).toHaveAttribute('aria-valuenow', '40'); // 200/500 = 40%
+    expect(progressBar).toHaveAttribute('aria-valuenow', '40');
   });
 
   it('should cap progress bar at 100% when over budget', () => {

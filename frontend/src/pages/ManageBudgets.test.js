@@ -62,7 +62,7 @@ describe('ManageBudgets Page', () => {
           ],
         });
       }
-      if (url === '/api/budgets/summary') {
+      if (url === '/api/budgets/summary' || url.startsWith('/api/budgets/summary?')) {
         return Promise.resolve({
           data: [
             { _id: 'b1', category: 'Food & Dining', budgetAmount: 500, spentAmount: 350 },
@@ -83,7 +83,7 @@ describe('ManageBudgets Page', () => {
     renderManageBudgets();
 
     await waitFor(() => {
-      expect(screen.getByText('Monthly Budgets')).toBeInTheDocument();
+      expect(screen.getByText('Budgets')).toBeInTheDocument();
     });
   });
 
@@ -92,7 +92,7 @@ describe('ManageBudgets Page', () => {
 
     await waitFor(() => {
       expect(axios.get).toHaveBeenCalledWith('/api/budgets');
-      expect(axios.get).toHaveBeenCalledWith('/api/budgets/summary');
+      expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/api/budgets/summary'));
       expect(axios.get).toHaveBeenCalledWith('/api/categories');
     });
   });
@@ -153,7 +153,7 @@ describe('ManageBudgets Page', () => {
   it('should show empty state when no budgets', async () => {
     axios.get.mockImplementation((url) => {
       if (url === '/api/budgets') return Promise.resolve({ data: [] });
-      if (url === '/api/budgets/summary') return Promise.resolve({ data: [] });
+      if (url === '/api/budgets/summary' || url.startsWith('/api/budgets/summary?')) return Promise.resolve({ data: [] });
       if (url === '/api/categories') return Promise.resolve({ data: ['Food & Dining'] });
       return Promise.resolve({ data: [] });
     });
