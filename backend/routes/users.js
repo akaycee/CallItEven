@@ -1,6 +1,7 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');
+const { escapeRegex } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get('/search', protect, async (req, res) => {
 
     // Search for users with email containing the search term
     const users = await User.find({
-      email: { $regex: email, $options: 'i' },
+      email: { $regex: escapeRegex(email), $options: 'i' },
       _id: { $ne: req.user._id }, // Exclude current user
       isAdmin: { $ne: true } // Exclude admin users
     })

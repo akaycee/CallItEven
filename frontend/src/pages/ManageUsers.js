@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
-  AppBar,
-  Toolbar,
   Typography,
   IconButton,
   Card,
@@ -27,32 +25,18 @@ import {
   FormControlLabel,
   useTheme,
   Paper,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Avatar,
 } from '@mui/material';
 import { 
-  ArrowBack, 
   Delete, 
   Edit, 
-  Brightness4, 
-  Brightness7,
-  LocalOffer,
-  People,
-  MoreVert,
-  Logout,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { ColorModeContext } from '../index';
+import NavBar from '../components/NavBar';
 
 function ManageUsers() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const colorMode = useContext(ColorModeContext);
   const { user, logout } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({ totalUsers: 0, totalExpenses: 0, totalAmount: 0 });
@@ -64,7 +48,12 @@ function ManageUsers() {
   const [userToDelete, setUserToDelete] = useState(null);
   const [userToEdit, setUserToEdit] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', isAdmin: false });
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const timeoutRefs = useRef([]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => timeoutRefs.current.forEach(clearTimeout);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -109,7 +98,7 @@ function ManageUsers() {
       setDeleteDialog(false);
       setUserToDelete(null);
       fetchData();
-      setTimeout(() => setSuccess(''), 3000);
+      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete user');
       setDeleteDialog(false);
@@ -138,109 +127,15 @@ function ManageUsers() {
       setEditDialog(false);
       setUserToEdit(null);
       fetchData();
-      setTimeout(() => setSuccess(''), 3000);
+      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update user');
     }
   };
 
-  const handleProfileMenuOpen = (event) => {
-    setProfileMenuAnchor(event.currentTarget);
-  };
-
-  const handleProfileMenuClose = () => {
-    setProfileMenuAnchor(null);
-  };
-
-  const handleThemeToggle = () => {
-    colorMode.toggleColorMode();
-    handleProfileMenuClose();
-  };
-
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar 
-        position="static" 
-        elevation={0}
-        sx={{
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '2px solid rgba(255, 255, 255, 0.2)',
-        }}
-      >
-        <Toolbar sx={{ py: 1.5 }}>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
-            Manage Users
-          </Typography>
-          <IconButton
-            color="inherit"
-            onClick={handleProfileMenuOpen}
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.25)',
-              },
-            }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255, 255, 255, 0.3)' }}>
-              {user?.name?.charAt(0).toUpperCase()}
-            </Avatar>
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      {/* Profile Menu */}
-      <Menu
-        anchorEl={profileMenuAnchor}
-        open={Boolean(profileMenuAnchor)}
-        onClose={handleProfileMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{
-          sx: {
-            mt: 1.5,
-            minWidth: 200,
-            borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          },
-        }}
-      >
-        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            {user?.name}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {user?.email}
-          </Typography>
-        </Box>
-        <MenuItem onClick={() => { navigate('/manage-categories'); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <LocalOffer fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Manage Categories</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { navigate('/manage-users'); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <People fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Manage Users</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleThemeToggle}>
-          <ListItemIcon>
-            {theme.palette.mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
-          </ListItemIcon>
-          <ListItemText>
-            {theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
-          </ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => { logout(); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <Logout fontSize="small" sx={{ color: '#ef4444' }} />
-          </ListItemIcon>
-          <ListItemText sx={{ color: '#ef4444' }}>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
+      <NavBar title="Manage Users" />
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         {error && (
@@ -402,6 +297,7 @@ function ManageUsers() {
                         <TableCell align="right">
                           <IconButton
                             size="small"
+                            aria-label={`Edit user ${userItem.name}`}
                             onClick={() => handleEditClick(userItem)}
                             sx={{
                               color: '#06b6d4',
@@ -415,6 +311,7 @@ function ManageUsers() {
                           </IconButton>
                           <IconButton
                             size="small"
+                            aria-label={`Delete user ${userItem.name}`}
                             onClick={() => handleDeleteClick(userItem)}
                             disabled={userItem._id === user._id}
                             sx={{

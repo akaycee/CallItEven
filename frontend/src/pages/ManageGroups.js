@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
-  AppBar,
-  Toolbar,
   Typography,
   IconButton,
   Card,
@@ -23,32 +21,21 @@ import {
   ListItemText,
   Avatar,
   AvatarGroup,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Divider,
   Autocomplete,
   CircularProgress,
 } from '@mui/material';
 import {
-  ArrowBack,
   Delete,
   Add,
-  Brightness4,
-  Brightness7,
-  Edit,
   Group as GroupIcon,
-  People,
-  Logout,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { ColorModeContext } from '../index';
+import NavBar from '../components/NavBar';
 
 function ManageGroups() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const colorMode = useContext(ColorModeContext);
   const { user, logout } = useContext(AuthContext);
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
@@ -61,11 +48,20 @@ function ManageGroups() {
   const [groupToDelete, setGroupToDelete] = useState(null);
   const [groupToEdit, setGroupToEdit] = useState(null);
   const [groupForm, setGroupForm] = useState({ name: '', memberEmails: [] });
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const [searchEmail, setSearchEmail] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [inviteDialog, setInviteDialog] = useState(false);
   const [inviteEmails, setInviteEmails] = useState([]);
+  const debounceRef = useRef(null);
+  const timeoutRefs = useRef([]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach(clearTimeout);
+      clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -95,15 +91,19 @@ function ManageGroups() {
       return;
     }
     
-    try {
-      setSearchLoading(true);
-      const { data } = await axios.get(`/api/users/search?email=${email}`);
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Error searching users:', error);
-    } finally {
-      setSearchLoading(false);
-    }
+    // Debounce search requests
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        setSearchLoading(true);
+        const { data } = await axios.get(`/api/users/search?email=${email}`);
+        setUsers(data || []);
+      } catch (error) {
+        console.error('Error searching users:', error);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
   }, []);
 
   const handleDeleteClick = useCallback((group) => {
@@ -119,7 +119,7 @@ function ManageGroups() {
       setDeleteDialog(false);
       setGroupToDelete(null);
       fetchGroups();
-      setTimeout(() => setSuccess(''), 3000);
+      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete group');
       setDeleteDialog(false);
@@ -158,7 +158,7 @@ function ManageGroups() {
       setGroupToEdit(null);
       setGroupForm({ name: '', memberEmails: [] });
       fetchGroups();
-      setTimeout(() => setSuccess(''), 3000);
+      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update group');
     }
@@ -186,26 +186,13 @@ function ManageGroups() {
       setAddDialog(false);
       setGroupForm({ name: '', memberEmails: [] });
       fetchGroups();
-      setTimeout(() => setSuccess(''), 3000);
+      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add group');
     }
   };
 
-  const handleProfileMenuOpen = (event) => {
-    setProfileMenuAnchor(event.currentTarget);
-  };
-
-  const handleProfileMenuClose = () => {
-    setProfileMenuAnchor(null);
-  };
-
-  const handleThemeToggle = () => {
-    colorMode.toggleColorMode();
-    handleProfileMenuClose();
-  };
-
-  // Memoize group list for performance
+  // Add aria-label to delete buttons
   const groupsList = useMemo(() => (
     groups.map((group) => (
       <ListItem
@@ -228,6 +215,7 @@ function ManageGroups() {
             {group.createdBy._id === user._id && (
               <IconButton
                 edge="end"
+                aria-label={`Delete group ${group.name}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDeleteClick(group);
@@ -293,96 +281,7 @@ function ManageGroups() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar
-        position="static"
-        elevation={0}
-        sx={{
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '2px solid rgba(255, 255, 255, 0.2)',
-        }}
-      >
-        <Toolbar sx={{ py: 1.5 }}>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/dashboard')}
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
-              mr: 2,
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.25)',
-              },
-            }}
-          >
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
-            Manage Groups
-          </Typography>
-          <IconButton
-            color="inherit"
-            onClick={handleProfileMenuOpen}
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.25)',
-              },
-            }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255, 255, 255, 0.3)' }}>
-              {user?.name?.charAt(0).toUpperCase()}
-            </Avatar>
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      {/* Profile Menu */}
-      <Menu
-        anchorEl={profileMenuAnchor}
-        open={Boolean(profileMenuAnchor)}
-        onClose={handleProfileMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{
-          sx: {
-            mt: 1.5,
-            minWidth: 200,
-            borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          },
-        }}
-      >
-        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            {user?.name}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {user?.email}
-          </Typography>
-        </Box>
-        <MenuItem onClick={() => { navigate('/dashboard'); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <ArrowBack fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Back to Dashboard</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleThemeToggle}>
-          <ListItemIcon>
-            {theme.palette.mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
-          </ListItemIcon>
-          <ListItemText>
-            {theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
-          </ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => { logout(); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <Logout fontSize="small" sx={{ color: '#ef4444' }} />
-          </ListItemIcon>
-          <ListItemText sx={{ color: '#ef4444' }}>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
+      <NavBar title="Manage Groups" showBack backPath="/dashboard" />
 
       <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
         {success && (

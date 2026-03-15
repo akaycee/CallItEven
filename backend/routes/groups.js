@@ -3,6 +3,7 @@ const { protect } = require('../middleware/auth');
 const Group = require('../models/Group');
 const User = require('../models/User');
 const PendingGroupInvite = require('../models/PendingGroupInvite');
+const { resolveGroupMembers, storePendingInvites } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -70,21 +71,8 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'Name and at least one other member are required' });
     }
 
-    // Find users by email
-    const members = await User.find({ 
-      email: { $in: memberEmails },
-      isAdmin: { $ne: true }
-    }).select('_id email');
-    
-    // Track not found emails for invite dialog
-    const foundEmails = members.map(m => m.email);
-    const notFoundEmails = memberEmails.filter(email => !foundEmails.includes(email));
-
-    // Add creator to members if not already included
-    const memberIds = members.map(m => m._id.toString());
-    if (!memberIds.includes(req.user._id.toString())) {
-      memberIds.push(req.user._id);
-    }
+    // Resolve members from emails
+    const { memberIds, notFoundEmails } = await resolveGroupMembers(memberEmails, req.user._id, User);
 
     if (memberIds.length < 2) {
       return res.status(400).json({ message: 'A group must have at least 2 members' });
@@ -97,19 +85,7 @@ router.post('/', protect, async (req, res) => {
     });
 
     // Store pending invitations for users who haven't signed up yet
-    if (notFoundEmails.length > 0) {
-      const pendingInvites = notFoundEmails.map(email => ({
-        email,
-        group: group._id,
-        invitedBy: req.user._id,
-      }));
-      
-      // Use insertMany with ordered: false to skip duplicates without failing
-      await PendingGroupInvite.insertMany(pendingInvites, { ordered: false }).catch(err => {
-        // Ignore duplicate key errors (code 11000)
-        if (err.code !== 11000) throw err;
-      });
-    }
+    await storePendingInvites(notFoundEmails, group._id, req.user._id, PendingGroupInvite);
 
     const populatedGroup = await Group.findById(group._id)
       .populate('members', 'name email')
@@ -146,42 +122,17 @@ router.put('/:id', protect, async (req, res) => {
     let notFoundEmails = [];
     
     if (memberEmails) {
-      const members = await User.find({ 
-        email: { $in: memberEmails },
-        isAdmin: { $ne: true }
-      }).select('_id email');
-      
-      // Track not found emails for pending invitations
-      const foundEmails = members.map(m => m.email);
-      notFoundEmails = memberEmails.filter(email => !foundEmails.includes(email));
+      const resolved = await resolveGroupMembers(memberEmails, req.user._id, User);
+      notFoundEmails = resolved.notFoundEmails;
 
-      const memberIds = members.map(m => m._id.toString());
-      
-      // Ensure creator is always a member
-      if (!memberIds.includes(req.user._id.toString())) {
-        memberIds.push(req.user._id);
-      }
-
-      if (memberIds.length < 2) {
+      if (resolved.memberIds.length < 2) {
         return res.status(400).json({ message: 'A group must have at least 2 members' });
       }
 
-      group.members = memberIds;
+      group.members = resolved.memberIds;
       
       // Store pending invitations for users who haven't signed up yet
-      if (notFoundEmails.length > 0) {
-        const pendingInvites = notFoundEmails.map(email => ({
-          email,
-          group: group._id,
-          invitedBy: req.user._id,
-        }));
-        
-        // Use insertMany with ordered: false to skip duplicates without failing
-        await PendingGroupInvite.insertMany(pendingInvites, { ordered: false }).catch(err => {
-          // Ignore duplicate key errors (code 11000)
-          if (err.code !== 11000) throw err;
-        });
-      }
+      await storePendingInvites(notFoundEmails, group._id, req.user._id, PendingGroupInvite);
     }
 
     await group.save();

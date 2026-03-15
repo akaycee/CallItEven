@@ -1,5 +1,6 @@
 const express = require('express');
 const { protect } = require('../middleware/auth');
+const { admin } = require('../middleware/admin');
 const User = require('../models/User');
 const Expense = require('../models/Expense');
 
@@ -8,12 +9,8 @@ const router = express.Router();
 // @route   GET /api/admin/users
 // @desc    Get all users
 // @access  Private (Admin only)
-router.get('/users', protect, async (req, res) => {
+router.get('/users', protect, admin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
-    }
-
     const users = await User.find()
       .select('-password')
       .sort({ createdAt: -1 });
@@ -28,12 +25,8 @@ router.get('/users', protect, async (req, res) => {
 // @route   PUT /api/admin/users/:id
 // @desc    Update user data
 // @access  Private (Admin only)
-router.put('/users/:id', protect, async (req, res) => {
+router.put('/users/:id', protect, admin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
-    }
-
     const { name, email, isAdmin } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -73,12 +66,8 @@ router.put('/users/:id', protect, async (req, res) => {
 // @route   DELETE /api/admin/users/:id
 // @desc    Delete a user
 // @access  Private (Admin only)
-router.delete('/users/:id', protect, async (req, res) => {
+router.delete('/users/:id', protect, admin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
-    }
-
     // Prevent admin from deleting themselves
     if (req.params.id === req.user._id.toString()) {
       return res.status(400).json({ message: 'Cannot delete your own account' });
@@ -110,12 +99,8 @@ router.delete('/users/:id', protect, async (req, res) => {
 // @route   GET /api/admin/stats
 // @desc    Get admin statistics
 // @access  Private (Admin only)
-router.get('/stats', protect, async (req, res) => {
+router.get('/stats', protect, admin, async (req, res) => {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
-    }
-
     const totalUsers = await User.countDocuments();
     const totalExpenses = await Expense.countDocuments();
     const totalAmount = await Expense.aggregate([

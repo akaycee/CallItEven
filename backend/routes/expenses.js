@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Expense = require('../models/Expense');
 const User = require('../models/User');
+const { validateExpenseUsers, calculateSplits } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -26,50 +27,14 @@ router.post('/', [
 
     const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
 
-    // Validate that paidBy user exists and is not admin
-    const paidByUser = await User.findById(paidBy);
-    if (!paidByUser) {
-      return res.status(400).json({ message: 'Invalid paidBy user' });
-    }
-    if (paidByUser.isAdmin) {
-      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
-    }
-
-    // Validate all split users exist and are not admin
-    const splitUserIds = splits.map(s => s.user);
-    const splitUsers = await User.find({ _id: { $in: splitUserIds } });
-    
-    if (splitUsers.length !== splitUserIds.length) {
-      return res.status(400).json({ message: 'Invalid user in splits' });
-    }
-    
-    if (splitUsers.some(u => u.isAdmin)) {
-      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
+    // Validate that paidBy and split users exist and are not admin
+    const validation = await validateExpenseUsers(paidBy, splits, User);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.error });
     }
 
     // Calculate split amounts based on split type
-    let calculatedSplits = [];
-
-    if (splitType === 'equal') {
-      const amountPerPerson = totalAmount / splits.length;
-      calculatedSplits = splits.map(split => ({
-        user: split.user,
-        amount: parseFloat(amountPerPerson.toFixed(2)),
-        percentage: parseFloat((100 / splits.length).toFixed(2))
-      }));
-    } else if (splitType === 'percentage') {
-      calculatedSplits = splits.map(split => ({
-        user: split.user,
-        amount: parseFloat((totalAmount * split.percentage / 100).toFixed(2)),
-        percentage: split.percentage
-      }));
-    } else if (splitType === 'unequal') {
-      calculatedSplits = splits.map(split => ({
-        user: split.user,
-        amount: split.amount,
-        percentage: parseFloat((split.amount / totalAmount * 100).toFixed(2))
-      }));
-    }
+    const calculatedSplits = calculateSplits(totalAmount, splitType, splits);
 
     // Create expense
     const expense = await Expense.create({
@@ -195,50 +160,14 @@ router.put('/:id', [
 
     const { description, totalAmount, paidBy, splitType, splits, category } = req.body;
 
-    // Validate that paidBy user exists and is not admin
-    const paidByUser = await User.findById(paidBy);
-    if (!paidByUser) {
-      return res.status(400).json({ message: 'Invalid paidBy user' });
-    }
-    if (paidByUser.isAdmin) {
-      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
-    }
-
-    // Validate all split users exist and are not admin
-    const splitUserIds = splits.map(s => s.user);
-    const splitUsers = await User.find({ _id: { $in: splitUserIds } });
-    
-    if (splitUsers.length !== splitUserIds.length) {
-      return res.status(400).json({ message: 'Invalid user in splits' });
-    }
-    
-    if (splitUsers.some(u => u.isAdmin)) {
-      return res.status(400).json({ message: 'Admin users cannot be added to expenses' });
+    // Validate that paidBy and split users exist and are not admin
+    const validation = await validateExpenseUsers(paidBy, splits, User);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.error });
     }
 
     // Calculate split amounts based on split type
-    let calculatedSplits = [];
-
-    if (splitType === 'equal') {
-      const amountPerPerson = totalAmount / splits.length;
-      calculatedSplits = splits.map(split => ({
-        user: split.user,
-        amount: parseFloat(amountPerPerson.toFixed(2)),
-        percentage: parseFloat((100 / splits.length).toFixed(2))
-      }));
-    } else if (splitType === 'percentage') {
-      calculatedSplits = splits.map(split => ({
-        user: split.user,
-        amount: parseFloat((totalAmount * split.percentage / 100).toFixed(2)),
-        percentage: split.percentage
-      }));
-    } else if (splitType === 'unequal') {
-      calculatedSplits = splits.map(split => ({
-        user: split.user,
-        amount: split.amount,
-        percentage: parseFloat((split.amount / totalAmount * 100).toFixed(2))
-      }));
-    }
+    const calculatedSplits = calculateSplits(totalAmount, splitType, splits);
 
     // Update expense fields
     expense.description = description;

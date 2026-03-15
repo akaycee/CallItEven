@@ -1,12 +1,9 @@
-﻿import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
-  AppBar,
-  Toolbar,
   Typography,
-  IconButton,
   Card,
   CardContent,
   List,
@@ -21,31 +18,19 @@ import {
   Alert,
   Chip,
   useTheme,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  Divider,
-  Avatar,
+  IconButton,
 } from '@mui/material';
 import { 
-  ArrowBack, 
   Delete, 
   Add, 
-  Brightness4, 
-  Brightness7,
-  MoreVert,
-  LocalOffer,
-  People,
-  Logout,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { ColorModeContext } from '../index';
+import NavBar from '../components/NavBar';
 
 function ManageCategories() {
   const navigate = useNavigate();
   const theme = useTheme();
-  const colorMode = useContext(ColorModeContext);
   const { user, logout } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +40,12 @@ function ManageCategories() {
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [addDialog, setAddDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const timeoutRefs = useRef([]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => timeoutRefs.current.forEach(clearTimeout);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -96,7 +86,7 @@ function ManageCategories() {
       setDeleteDialog(false);
       setCategoryToDelete(null);
       fetchCategories();
-      setTimeout(() => setSuccess(''), 3000);
+      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete category');
       setDeleteDialog(false);
@@ -115,109 +105,15 @@ function ManageCategories() {
       setAddDialog(false);
       setNewCategoryName('');
       fetchCategories();
-      setTimeout(() => setSuccess(''), 3000);
+      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add category');
     }
   };
 
-  const handleProfileMenuOpen = (event) => {
-    setProfileMenuAnchor(event.currentTarget);
-  };
-
-  const handleProfileMenuClose = () => {
-    setProfileMenuAnchor(null);
-  };
-
-  const handleThemeToggle = () => {
-    colorMode.toggleColorMode();
-    handleProfileMenuClose();
-  };
-
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar 
-        position="static" 
-        elevation={0}
-        sx={{
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '2px solid rgba(255, 255, 255, 0.2)',
-        }}
-      >
-        <Toolbar sx={{ py: 1.5 }}>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
-            Manage Categories
-          </Typography>
-          <IconButton
-            color="inherit"
-            onClick={handleProfileMenuOpen}
-            sx={{
-              bgcolor: 'rgba(255, 255, 255, 0.15)',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.25)',
-              },
-            }}
-          >
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'rgba(255, 255, 255, 0.3)' }}>
-              {user?.name?.charAt(0).toUpperCase()}
-            </Avatar>
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      {/* Profile Menu */}
-      <Menu
-        anchorEl={profileMenuAnchor}
-        open={Boolean(profileMenuAnchor)}
-        onClose={handleProfileMenuClose}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{
-          sx: {
-            mt: 1.5,
-            minWidth: 200,
-            borderRadius: 2,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-          },
-        }}
-      >
-        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            {user?.name}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {user?.email}
-          </Typography>
-        </Box>
-        <MenuItem onClick={() => { navigate('/manage-categories'); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <LocalOffer fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Manage Categories</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={() => { navigate('/manage-users'); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <People fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Manage Users</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleThemeToggle}>
-          <ListItemIcon>
-            {theme.palette.mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
-          </ListItemIcon>
-          <ListItemText>
-            {theme.palette.mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
-          </ListItemText>
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={() => { logout(); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <Logout fontSize="small" sx={{ color: '#ef4444' }} />
-          </ListItemIcon>
-          <ListItemText sx={{ color: '#ef4444' }}>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
+      <NavBar title="Manage Categories" />
 
       <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
         {error && (
@@ -417,7 +313,7 @@ function ManageCategories() {
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             margin="normal"
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 handleAddCategory();
               }

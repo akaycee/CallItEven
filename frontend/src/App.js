@@ -1,7 +1,7 @@
 import React, { useContext, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthContext, AuthProvider } from './context/AuthContext';
-import { CircularProgress, Box } from '@mui/material';
+import LoadingScreen from './components/LoadingScreen';
 
 // Lazy load page components
 const Login = lazy(() => import('./pages/Login'));
@@ -12,32 +12,17 @@ const EditExpense = lazy(() => import('./pages/EditExpense'));
 const ManageCategories = lazy(() => import('./pages/ManageCategories'));
 const ManageUsers = lazy(() => import('./pages/ManageUsers'));
 const ManageGroups = lazy(() => import('./pages/ManageGroups'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
+  if (loading) return <LoadingScreen />;
   return user ? children : <Navigate to="/login" />;
 };
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
+  if (loading) return <LoadingScreen />;
   // Redirect admin to manage-categories, regular users to dashboard
   return user ? <Navigate to={user.isAdmin ? "/manage-categories" : "/dashboard"} /> : children;
 };
@@ -45,11 +30,7 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <Suspense fallback={
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-          <CircularProgress />
-        </Box>
-      }>
+      <Suspense fallback={<LoadingScreen />}>
         <Routes>
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
@@ -60,6 +41,7 @@ function App() {
           <Route path="/manage-users" element={<PrivateRoute><ManageUsers /></PrivateRoute>} />
           <Route path="/manage-groups" element={<PrivateRoute><ManageGroups /></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/manage-categories" />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </AuthProvider>

@@ -3,6 +3,7 @@ const { protect } = require('../middleware/auth');
 const { admin } = require('../middleware/admin');
 const Category = require('../models/Category');
 const Expense = require('../models/Expense');
+const { escapeRegex } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -74,7 +75,7 @@ router.post('/', protect, async (req, res) => {
 
     // Check if category already exists
     const existingCategory = await Category.findOne({ 
-      name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
+      name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, 'i') } 
     });
 
     if (existingCategory) {
@@ -107,14 +108,15 @@ router.delete('/:name', protect, async (req, res) => {
     }
 
     // Reassign all expenses with this category to "Uncategorized"
+    const escapedName = escapeRegex(name);
     await Expense.updateMany(
-      { category: { $regex: new RegExp(`^${name}$`, 'i') } },
+      { category: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
       { $set: { category: 'Uncategorized' } }
     );
 
     // Delete the category
     const result = await Category.deleteOne({ 
-      name: { $regex: new RegExp(`^${name}$`, 'i') } 
+      name: { $regex: new RegExp(`^${escapedName}$`, 'i') } 
     });
 
     if (result.deletedCount === 0) {

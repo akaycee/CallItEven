@@ -48,15 +48,15 @@ router.post('/register', [
     const pendingInvites = await PendingGroupInvite.find({ email: email.toLowerCase() }).populate('group');
     
     if (pendingInvites.length > 0) {
-      // Add user to all groups they were invited to
-      for (const invite of pendingInvites) {
-        if (invite.group && !invite.group.members.includes(user._id)) {
-          await Group.findByIdAndUpdate(
+      // Add user to all groups they were invited to (in parallel)
+      await Promise.all(
+        pendingInvites
+          .filter(invite => invite.group && !invite.group.members.includes(user._id))
+          .map(invite => Group.findByIdAndUpdate(
             invite.group._id,
             { $addToSet: { members: user._id } }
-          );
-        }
-      }
+          ))
+      );
       
       // Delete all pending invitations for this email
       await PendingGroupInvite.deleteMany({ email: email.toLowerCase() });
