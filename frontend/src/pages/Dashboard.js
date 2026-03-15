@@ -8,8 +8,6 @@ import {
   Typography,
   Button,
   IconButton,
-  SpeedDial,
-  SpeedDialAction,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -35,9 +33,11 @@ import {
   MenuItem,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
 } from '@mui/material';
 import {
   Add,
+  ArrowBack,
   Logout,
   Brightness4,
   Brightness7,
@@ -46,6 +46,9 @@ import {
   AccountBalanceWallet,
   AttachMoney,
   ShowChart,
+  StickyNote2,
+  TrendingUp,
+  ShoppingCart,
   Person,
   Delete,
   Receipt,
@@ -60,6 +63,8 @@ import { FullCelebration, PartialCelebration } from '../components/CelebrationOv
 import { BalanceSummaryCard } from '../components/BalanceSummaryCard';
 import { ExpenseSummaryCard } from '../components/ExpenseSummaryCard';
 import BudgetOverview from '../components/BudgetOverview';
+import CreateExpense from './CreateExpense';
+import ManageIncome from './ManageIncome';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 
@@ -91,6 +96,14 @@ function Dashboard() {
   const [profileForm, setProfileForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [profileError, setProfileError] = useState('');
   const [profileSuccess, setProfileSuccess] = useState('');
+  const [userNotes, setUserNotes] = useState('');
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesSuccess, setNotesSuccess] = useState('');
+  const [notesDialog, setNotesDialog] = useState(false);
+  const [showDockHint, setShowDockHint] = useState(() => !localStorage.getItem('hasSeenDock'));
+  const [addExpenseDialog, setAddExpenseDialog] = useState(false);
+  const [addIncomeDialog, setAddIncomeDialog] = useState(false);
+  const [quickExpenseLoading, setQuickExpenseLoading] = useState(false);
   const [evenUpDialog, setEvenUpDialog] = useState(false);
   const [evenUpAmount, setEvenUpAmount] = useState('');
   const [evenUpError, setEvenUpError] = useState('');
@@ -99,6 +112,7 @@ function Dashboard() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [showPartialCelebration, setShowPartialCelebration] = useState(false);
   const [expenseTypeFilter, setExpenseTypeFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('');
   const [budgetSummary, setBudgetSummary] = useState([]);
 
   const getBudgetDateRange = () => {
@@ -461,10 +475,13 @@ function Dashboard() {
       } else if (expenseTypeFilter === 'shared') {
         matchesType = !expense.isPersonal;
       }
+
+      // Tag filter
+      const matchesTag = !tagFilter || (expense.tag && expense.tag.toLowerCase().includes(tagFilter.toLowerCase()));
       
-      return isInDateRange && isNotSettlement && matchesType;
+      return isInDateRange && isNotSettlement && matchesType && matchesTag;
     });
-  }, [expenses, dateFilter, customStartDate, customEndDate, expenseTypeFilter]);
+  }, [expenses, dateFilter, customStartDate, customEndDate, expenseTypeFilter, tagFilter]);
 
   const filteredActivity = useMemo(() => {
     const { startDate, endDate } = getDateRange();
@@ -792,52 +809,6 @@ function Dashboard() {
           </ListItemIcon>
           <ListItemText sx={{ color: 'text.primary' }}>Edit Profile</ListItemText>
         </MenuItem>
-        <MenuItem onClick={() => { navigate('/manage-groups'); handleProfileMenuClose(); }}>
-          <ListItemIcon>
-            <People fontSize="small" />
-          </ListItemIcon>
-          <ListItemText sx={{ color: 'text.primary' }}>My Groups</ListItemText>
-        </MenuItem>
-        {!user?.isAdmin && (
-          <MenuItem onClick={() => { navigate('/manage-budgets'); handleProfileMenuClose(); }}>
-            <ListItemIcon>
-              <AccountBalanceWallet fontSize="small" />
-            </ListItemIcon>
-            <ListItemText sx={{ color: 'text.primary' }}>Manage Budgets</ListItemText>
-          </MenuItem>
-        )}
-        {!user?.isAdmin && (
-          <MenuItem onClick={() => { navigate('/manage-income'); handleProfileMenuClose(); }}>
-            <ListItemIcon>
-              <AttachMoney fontSize="small" />
-            </ListItemIcon>
-            <ListItemText sx={{ color: 'text.primary' }}>Manage Income</ListItemText>
-          </MenuItem>
-        )}
-        {!user?.isAdmin && (
-          <MenuItem onClick={() => { navigate('/cash-flow'); handleProfileMenuClose(); }}>
-            <ListItemIcon>
-              <ShowChart fontSize="small" />
-            </ListItemIcon>
-            <ListItemText sx={{ color: 'text.primary' }}>Cash Flow</ListItemText>
-          </MenuItem>
-        )}
-        {user?.isAdmin && (
-          <MenuItem onClick={() => { navigate('/manage-categories'); handleProfileMenuClose(); }}>
-            <ListItemIcon>
-              <LocalOffer fontSize="small" />
-            </ListItemIcon>
-            <ListItemText sx={{ color: 'text.primary' }}>Manage Categories</ListItemText>
-          </MenuItem>
-        )}
-        {user?.isAdmin && (
-          <MenuItem onClick={() => { navigate('/manage-users'); handleProfileMenuClose(); }}>
-            <ListItemIcon>
-              <People fontSize="small" />
-            </ListItemIcon>
-            <ListItemText sx={{ color: 'text.primary' }}>Manage Users</ListItemText>
-          </MenuItem>
-        )}
         <MenuItem onClick={handleThemeToggle}>
           <ListItemIcon>
             {theme.palette.mode === 'dark' ? <Brightness7 fontSize="small" /> : <Brightness4 fontSize="small" />}
@@ -955,7 +926,129 @@ function Dashboard() {
         </DialogActions>
       </Dialog>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Notes Dialog */}
+      <Dialog
+        open={notesDialog}
+        onClose={() => setNotesDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            background: theme.palette.mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
+              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px)',
+          },
+        }}
+      >
+        <DialogTitle sx={{
+          fontWeight: 700,
+          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
+          My Notes
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 2, mt: 1, display: 'block' }}>
+            Keep track of reminders — e.g., which card expenses have been added through
+          </Typography>
+          <TextField
+            fullWidth
+            label="Notes"
+            value={userNotes}
+            onChange={(e) => { setUserNotes(e.target.value); setNotesSuccess(''); }}
+            multiline
+            rows={6}
+            placeholder="e.g., Chase card expenses added through March 10"
+            inputProps={{ maxLength: 5000 }}
+            helperText={notesSuccess || `${userNotes.length}/5000`}
+            FormHelperTextProps={{
+              sx: notesSuccess ? { color: 'success.main' } : {},
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setNotesDialog(false)} sx={{ color: 'text.secondary' }}>
+            Close
+          </Button>
+          <Button
+            variant="contained"
+            disabled={notesSaving}
+            onClick={async () => {
+              setNotesSaving(true);
+              try {
+                await axios.put('/api/users/notes', { notes: userNotes });
+                setNotesSuccess('Notes saved!');
+                setTimeout(() => setNotesSuccess(''), 2000);
+              } catch (err) {
+                // silently fail
+              } finally {
+                setNotesSaving(false);
+              }
+            }}
+            sx={{
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              color: 'white',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+              },
+            }}
+          >
+            {notesSaving ? 'Saving...' : 'Save Notes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Expense Dialog (Full Form) */}
+      <Dialog
+        open={addExpenseDialog}
+        onClose={() => setAddExpenseDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { bgcolor: 'background.default', borderRadius: 3, maxHeight: '90vh' } }}
+      >
+        <DialogTitle sx={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)',
+          color: 'white',
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>Create New Expense</Typography>
+          <IconButton color="inherit" onClick={() => setAddExpenseDialog(false)}>
+            <ArrowBack />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <CreateExpense isDialog onDone={() => { setAddExpenseDialog(false); fetchData(); }} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Income Dialog (Full Form) */}
+      <Dialog
+        open={addIncomeDialog}
+        onClose={() => setAddIncomeDialog(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { bgcolor: 'background.default', borderRadius: 3, maxHeight: '90vh' } }}
+      >
+        <DialogTitle sx={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+          color: 'white',
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 700 }}>Manage Income</Typography>
+          <IconButton color="inherit" onClick={() => setAddIncomeDialog(false)}>
+            <ArrowBack />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <ManageIncome isDialog onDone={() => { setAddIncomeDialog(false); fetchData(); }} />
+        </DialogContent>
+      </Dialog>
+
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 12, pb: 4 }}>
         {/* Balance Summary */}
         <BalanceSummaryCard 
           balances={balances}
@@ -992,6 +1085,16 @@ function Dashboard() {
               <ToggleButton value="shared">Shared</ToggleButton>
               <ToggleButton value="personal">Personal</ToggleButton>
             </ToggleButtonGroup>
+            <TextField
+              size="small"
+              placeholder="Filter by tag..."
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              sx={{ ml: 2, minWidth: 160 }}
+              InputProps={{
+                sx: { fontSize: '0.85rem' },
+              }}
+            />
           </Box>
 
           <ExpenseSummaryCard
@@ -1300,43 +1403,180 @@ function Dashboard() {
         </Card>
       </Container>
 
-      {/* Floating Speed Dial */}
-      <SpeedDial
-        ariaLabel="Add new"
+      {/* Bottom Tab Bar */}
+      <Box
         sx={{
           position: 'fixed',
-          bottom: 32,
-          right: 32,
-          '& .MuiSpeedDial-fab': {
-            width: 64,
-            height: 64,
-            background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #0f766e 100%)',
-            },
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 1,
+          px: 2,
+          py: 1,
+          background: theme.palette.mode === 'dark'
+            ? 'rgba(15, 23, 42, 0.95)'
+            : 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          borderTop: '1px solid',
+          borderColor: theme.palette.mode === 'dark'
+            ? 'rgba(255, 255, 255, 0.08)'
+            : 'rgba(0, 0, 0, 0.06)',
+          boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.08)',
+          animation: showDockHint ? 'dockBounce 0.6s ease-out' : 'none',
+          '@keyframes dockBounce': {
+            '0%': { transform: 'translateY(100%)' },
+            '60%': { transform: 'translateY(-8px)' },
+            '100%': { transform: 'translateY(0)' },
           },
         }}
-        icon={<Add sx={{ fontSize: 32 }} />}
       >
-        <SpeedDialAction
-          icon={<Receipt />}
-          tooltipTitle="Add Expense"
-          onClick={() => navigate('/expenses/new')}
-          sx={{
-            bgcolor: 'background.paper',
-            '&:hover': { bgcolor: 'action.hover' },
-          }}
-        />
-        <SpeedDialAction
-          icon={<AttachMoney />}
-          tooltipTitle="Add Income"
-          onClick={() => navigate('/manage-income')}
-          sx={{
-            bgcolor: 'background.paper',
-            '&:hover': { bgcolor: 'action.hover' },
-          }}
-        />
-      </SpeedDial>
+        {/* First-visit hint */}
+        {showDockHint && (
+          <Box
+            onClick={() => {
+              setShowDockHint(false);
+              localStorage.setItem('hasSeenDock', 'true');
+            }}
+            sx={{
+              position: 'absolute',
+              top: -44,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              color: 'white',
+              px: 2,
+              py: 0.75,
+              borderRadius: 2,
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
+              animation: 'hintPulse 2s ease-in-out infinite',
+              '@keyframes hintPulse': {
+                '0%, 100%': { opacity: 1 },
+                '50%': { opacity: 0.7 },
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: -6,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0,
+                height: 0,
+                borderLeft: '6px solid transparent',
+                borderRight: '6px solid transparent',
+                borderTop: '6px solid #ec4899',
+              },
+            }}
+          >
+            Your tools live here ✨ Tap to dismiss
+          </Box>
+        )}
+
+        {/* Income capsule */}
+        {!user?.isAdmin && (
+          <Box sx={{
+            display: 'flex', flexDirection: 'row', gap: 0.25, px: 0.75, py: 0.5, borderRadius: 2.5,
+            background: '#10b981',
+          }}>
+            {[{ icon: <TrendingUp sx={{ fontSize: 20 }} />, label: 'Add', onClick: () => setAddIncomeDialog(true) },
+              { icon: <AttachMoney sx={{ fontSize: 20 }} />, label: 'Income', onClick: () => navigate('/manage-income') },
+            ].map((item) => (
+              <Box key={item.label} onClick={item.onClick} sx={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
+                px: 1, py: 0.25, borderRadius: 2, color: 'white',
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                '&:active': { transform: 'scale(0.95)' },
+              }}>
+                {item.icon}
+                <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {/* Expense capsule */}
+        {!user?.isAdmin && (
+          <Box sx={{
+            display: 'flex', flexDirection: 'row', gap: 0.25, px: 0.75, py: 0.5, borderRadius: 2.5,
+            background: '#f97316',
+          }}>
+            {[{ icon: <ShoppingCart sx={{ fontSize: 20 }} />, label: 'Add', onClick: () => setAddExpenseDialog(true) },
+              { icon: <AccountBalanceWallet sx={{ fontSize: 20 }} />, label: 'Budgets', onClick: () => navigate('/manage-budgets') },
+            ].map((item) => (
+              <Box key={item.label} onClick={item.onClick} sx={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
+                px: 1, py: 0.25, borderRadius: 2, color: 'white',
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                '&:active': { transform: 'scale(0.95)' },
+              }}>
+                {item.icon}
+                <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {/* Admin capsule */}
+        {user?.isAdmin && (
+          <Box sx={{
+            display: 'flex', flexDirection: 'row', gap: 0.25, px: 0.75, py: 0.5, borderRadius: 2.5,
+            background: '#8b5cf6',
+          }}>
+            {[{ icon: <LocalOffer sx={{ fontSize: 20 }} />, label: 'Categories', onClick: () => navigate('/manage-categories') },
+              { icon: <Person sx={{ fontSize: 20 }} />, label: 'Users', onClick: () => navigate('/manage-users') },
+            ].map((item) => (
+              <Box key={item.label} onClick={item.onClick} sx={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
+                px: 1, py: 0.25, borderRadius: 2, color: 'white',
+                transition: 'all 0.2s ease',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+                '&:active': { transform: 'scale(0.95)' },
+              }}>
+                {item.icon}
+                <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+              </Box>
+            ))}
+          </Box>
+        )}
+
+        {/* Utilities capsule */}
+        <Box sx={{
+          display: 'flex', flexDirection: 'row', gap: 0.25, px: 0.75, py: 0.5, borderRadius: 2.5,
+          background: theme.palette.mode === 'dark' ? '#334155' : '#64748b',
+        }}>
+          {[
+            ...(!user?.isAdmin ? [{ icon: <ShowChart sx={{ fontSize: 20 }} />, label: 'Flow', onClick: () => navigate('/cash-flow') }] : []),
+            { icon: <People sx={{ fontSize: 20 }} />, label: 'Groups', onClick: () => navigate('/manage-groups') },
+            { icon: <StickyNote2 sx={{ fontSize: 20 }} />, label: 'Notes', onClick: () => {
+              setNotesSuccess('');
+              axios.get('/api/users/profile').then(res => {
+                setUserNotes(res.data.notes || '');
+              }).catch(() => {});
+              setNotesDialog(true);
+            }},
+          ].map((item) => (
+            <Box key={item.label} onClick={item.onClick} sx={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
+              px: 1, py: 0.25, borderRadius: 2, color: 'white',
+              transition: 'all 0.2s ease',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
+              '&:active': { transform: 'scale(0.95)' },
+            }}>
+              {item.icon}
+              <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
 
       {/* Expense Detail Dialog */}
       <Dialog

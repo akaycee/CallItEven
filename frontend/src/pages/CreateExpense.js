@@ -36,17 +36,19 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 
-function CreateExpense() {
+function CreateExpense({ onDone, isDialog = false }) {
   const navigate = useNavigate();
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
   const { user } = useContext(AuthContext);
+  const handleClose = () => onDone ? onDone() : navigate('/dashboard');
   const [formData, setFormData] = useState({
     description: '',
     totalAmount: '',
     paidBy: user._id,
     splitType: 'equal',
     category: '',
+    tag: '',
   });
   const [participants, setParticipants] = useState([{ user: user, amount: '', percentage: '' }]);
   const [searchEmail, setSearchEmail] = useState('');
@@ -255,7 +257,7 @@ function CreateExpense() {
         splits,
         isPersonal,
       });
-      navigate('/dashboard');
+      handleClose();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create expense');
     } finally {
@@ -264,7 +266,8 @@ function CreateExpense() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ minHeight: isDialog ? 'auto' : '100vh', bgcolor: 'background.default' }}>
+      {!isDialog && (
       <AppBar 
         position="static" 
         elevation={0}
@@ -278,7 +281,7 @@ function CreateExpense() {
           <IconButton 
             edge="start" 
             color="inherit" 
-            onClick={() => navigate('/dashboard')}
+            onClick={handleClose}
             sx={{
               bgcolor: 'rgba(255, 255, 255, 0.15)',
               mr: 2,
@@ -317,8 +320,9 @@ function CreateExpense() {
           </Typography>
         </Toolbar>
       </AppBar>
+      )}
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="md" sx={{ mt: isDialog ? 0 : 4, mb: 4 }}>
         <Card elevation={0}>
           <CardContent sx={{ p: 5 }}>
             {error && (
@@ -385,6 +389,16 @@ function CreateExpense() {
                     error={!!categoryError}
                   />
                 )}
+              />
+
+              <TextField
+                fullWidth
+                label="Tag"
+                name="tag"
+                value={formData.tag}
+                onChange={handleChange}
+                margin="normal"
+                placeholder="Optional tag for filtering (e.g., vacation, project-x)"
               />
 
               <FormControlLabel
@@ -626,7 +640,7 @@ function CreateExpense() {
                   variant="outlined"
                   size="large"
                   fullWidth
-                  onClick={() => navigate('/dashboard')}
+                  onClick={handleClose}
                   sx={{
                     borderWidth: 2,
                     '&:hover': {

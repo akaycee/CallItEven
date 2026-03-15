@@ -191,4 +191,69 @@ describe('User Routes', () => {
       expect(res.status).toBe(401);
     });
   });
+
+  describe('PUT /api/users/notes', () => {
+    let user, token;
+
+    beforeEach(async () => {
+      ({ user, token } = await createTestUser({ email: 'notes@example.com' }));
+    });
+
+    it('should save notes for the user', async () => {
+      const res = await request(app)
+        .put('/api/users/notes')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: 'Chase card expenses added through March 10' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.notes).toBe('Chase card expenses added through March 10');
+
+      // Verify it persisted
+      const profile = await request(app)
+        .get('/api/users/profile')
+        .set('Authorization', `Bearer ${token}`);
+      expect(profile.body.notes).toBe('Chase card expenses added through March 10');
+    });
+
+    it('should allow empty notes', async () => {
+      const res = await request(app)
+        .put('/api/users/notes')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: '' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.notes).toBe('');
+    });
+
+    it('should return 400 when notes field is missing', async () => {
+      const res = await request(app)
+        .put('/api/users/notes')
+        .set('Authorization', `Bearer ${token}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 401 without auth token', async () => {
+      const res = await request(app)
+        .put('/api/users/notes')
+        .send({ notes: 'test' });
+
+      expect(res.status).toBe(401);
+    });
+
+    it('should include notes in profile response', async () => {
+      await request(app)
+        .put('/api/users/notes')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ notes: 'My reminder' });
+
+      const res = await request(app)
+        .get('/api/users/profile')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.notes).toBe('My reminder');
+    });
+  });
 });

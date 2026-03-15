@@ -184,4 +184,35 @@ describe('Login Page', () => {
       expect(screen.getByText('Login failed. Please try again.')).toBeInTheDocument();
     });
   });
+
+  it('should always render in light mode even when parent theme is dark', () => {
+    const darkTheme = createTheme({ palette: { mode: 'dark' } });
+    const defaultAuth = {
+      user: null,
+      login: jest.fn(),
+      logout: jest.fn(),
+      loading: false,
+    };
+
+    render(
+      <BrowserRouter>
+        <ThemeProvider theme={darkTheme}>
+          <AuthContext.Provider value={defaultAuth}>
+            <Login />
+          </AuthContext.Provider>
+        </ThemeProvider>
+      </BrowserRouter>
+    );
+
+    // The login page should have light-mode background color, not dark
+    const loginPage = screen.getByTestId('login-page');
+    expect(loginPage).toBeInTheDocument();
+
+    // Text should use dark color (light mode), not light color (dark mode)
+    const subtitle = screen.getByText('Split expenses the easy way');
+    const style = window.getComputedStyle(subtitle);
+    // In dark mode, text would be light (e.g. rgb(241, 245, 249))
+    // In light mode, it should be darker
+    expect(style.color).not.toBe('rgb(241, 245, 249)');
+  });
 });

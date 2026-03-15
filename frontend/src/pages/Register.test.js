@@ -221,4 +221,32 @@ describe('Register Page', () => {
       expect(passwordInput).toHaveAttribute('type', 'text');
     }
   });
+
+  it('should always render in light mode even when parent theme is dark', () => {
+    const darkTheme = createTheme({ palette: { mode: 'dark' } });
+    const defaultAuth = {
+      user: null,
+      login: jest.fn(),
+      logout: jest.fn(),
+      loading: false,
+    };
+
+    render(
+      <BrowserRouter>
+        <ThemeProvider theme={darkTheme}>
+          <AuthContext.Provider value={defaultAuth}>
+            <Register />
+          </AuthContext.Provider>
+        </ThemeProvider>
+      </BrowserRouter>
+    );
+
+    const registerPage = screen.getByTestId('register-page');
+    expect(registerPage).toBeInTheDocument();
+
+    // Text should use dark color (light mode), not light color (dark mode)
+    const subtitle = screen.getByText('Create your account and start splitting');
+    const style = window.getComputedStyle(subtitle);
+    expect(style.color).not.toBe('rgb(241, 245, 249)');
+  });
 });

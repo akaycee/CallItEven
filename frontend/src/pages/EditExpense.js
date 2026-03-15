@@ -43,6 +43,7 @@ function EditExpense() {
     paidBy: '',
     splitType: 'equal',
     category: '',
+    tag: '',
   });
   const [participants, setParticipants] = useState([]);
   const [searchEmail, setSearchEmail] = useState('');
@@ -84,6 +85,7 @@ function EditExpense() {
         paidBy: data.paidBy._id,
         splitType: data.splitType,
         category: data.category || '',
+        tag: data.tag || '',
       });
 
       setIsPersonal(!!data.isPersonal);
@@ -384,6 +386,16 @@ function EditExpense() {
                     placeholder="Select or type a category"
                   />
                 )}
+              />
+
+              <TextField
+                fullWidth
+                label="Tag"
+                name="tag"
+                value={formData.tag}
+                onChange={handleChange}
+                margin="normal"
+                placeholder="Optional tag for filtering (e.g., vacation, project-x)"
               />
 
               <FormControlLabel

@@ -44,6 +44,7 @@ router.get('/profile', protect, async (req, res) => {
       email: user.email,
       isAdmin: user.isAdmin || false,
       themeMode: user.themeMode || 'light',
+      notes: user.notes || '',
     });
   } catch (error) {
     console.error(error);
@@ -92,7 +93,32 @@ router.put('/profile', protect, async (req, res) => {
       email: user.email,
       isAdmin: user.isAdmin || false,
       themeMode: user.themeMode || 'light',
+      notes: user.notes || '',
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/users/notes
+// @desc    Update user notes
+// @access  Private
+router.put('/notes', protect, async (req, res) => {
+  try {
+    const { notes } = req.body;
+
+    if (notes === undefined) {
+      return res.status(400).json({ message: 'Notes field is required' });
+    }
+
+    if (notes.length > 5000) {
+      return res.status(400).json({ message: 'Notes cannot exceed 5000 characters' });
+    }
+
+    await User.findByIdAndUpdate(req.user._id, { notes });
+
+    res.json({ notes });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

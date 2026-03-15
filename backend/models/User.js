@@ -28,6 +28,11 @@ const userSchema = new mongoose.Schema({
     enum: ['light', 'dark'],
     default: 'light'
   },
+  notes: {
+    type: String,
+    default: '',
+    maxlength: 5000
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -34,6 +34,11 @@ const incomeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Group'
   },
+  tag: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   isRecurring: {
     type: Boolean,
     default: false

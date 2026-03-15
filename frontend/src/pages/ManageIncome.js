@@ -42,7 +42,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar';
 
-function ManageIncome() {
+function ManageIncome({ onDone, isDialog = false }) {
   const navigate = useNavigate();
   const theme = useTheme();
   const { user } = useContext(AuthContext);
@@ -58,6 +58,7 @@ function ManageIncome() {
   const [dateFilter, setDateFilter] = useState('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
   const timeoutRefs = useRef([]);
 
   const emptyForm = {
@@ -67,6 +68,7 @@ function ManageIncome() {
     description: '',
     category: 'General',
     group: '',
+    tag: '',
     isRecurring: false,
     recurrenceFrequency: 'monthly',
     recurrenceEndDate: '',
@@ -181,6 +183,7 @@ function ManageIncome() {
         description: form.description,
         category: form.category || 'General',
         group: form.group || undefined,
+        tag: form.tag || '',
         isRecurring: form.isRecurring,
       };
       if (form.isRecurring) {
@@ -210,6 +213,7 @@ function ManageIncome() {
       description: income.description || '',
       category: income.category || 'General',
       group: income.group || '',
+      tag: income.tag || '',
       isRecurring: income.isRecurring || false,
       recurrenceFrequency: income.recurrence?.frequency || 'monthly',
       recurrenceEndDate: income.recurrence?.endDate
@@ -238,6 +242,7 @@ function ManageIncome() {
         description: form.description,
         category: form.category || 'General',
         group: form.group || undefined,
+        tag: form.tag || '',
         isRecurring: form.isRecurring,
       };
       if (form.isRecurring) {
@@ -338,6 +343,13 @@ function ManageIncome() {
           ))}
         </Select>
       </FormControl>
+      <TextField
+        label="Tag"
+        value={form.tag}
+        onChange={(e) => setForm({ ...form, tag: e.target.value })}
+        placeholder="Optional tag for filtering (e.g., vacation, project-x)"
+        fullWidth
+      />
       {groups.length > 0 && (
         <FormControl fullWidth>
           <InputLabel>Group (optional)</InputLabel>
@@ -390,6 +402,54 @@ function ManageIncome() {
       )}
     </Box>
   );
+
+  // When rendered as a dialog, show only the add form inline
+  if (isDialog) {
+    return (
+      <Box sx={{ p: 3 }}>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+            {success}
+          </Alert>
+        )}
+        {renderIncomeForm()}
+        <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={() => onDone && onDone()}
+            sx={{ borderWidth: 2, '&:hover': { borderWidth: 2 } }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            fullWidth
+            disabled={!form.source || !form.amount}
+            onClick={async () => {
+              await handleAdd();
+              if (onDone && !error) {
+                setTimeout(() => onDone(), 500);
+              }
+            }}
+            sx={{
+              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+              color: 'white',
+              fontWeight: 700,
+              '&:hover': { background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)' },
+            }}
+          >
+            Add Income
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -546,6 +606,16 @@ function ManageIncome() {
                 >
                   Add Income
                 </Button>
+                <TextField
+                  size="small"
+                  placeholder="Filter by tag..."
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  sx={{ minWidth: 150 }}
+                  InputProps={{
+                    sx: { fontSize: '0.85rem' },
+                  }}
+                />
               </Box>
             </Box>
 
@@ -559,7 +629,9 @@ function ManageIncome() {
               </Box>
             ) : (
               <List>
-                {incomes.map((income, index) => (
+                {incomes
+                  .filter(inc => !tagFilter || (inc.tag && inc.tag.toLowerCase().includes(tagFilter.toLowerCase())))
+                  .map((income, index) => (
                   <React.Fragment key={income._id || `expanded-${index}`}>
                     <ListItem
                       sx={{
@@ -592,6 +664,9 @@ function ManageIncome() {
                             )}
                             {income.group && (
                               <Chip label="Group" size="small" color="secondary" variant="outlined" />
+                            )}
+                            {income.tag && (
+                              <Chip label={income.tag} size="small" color="default" variant="outlined" />
                             )}
                           </Box>
                         }

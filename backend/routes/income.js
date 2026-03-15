@@ -26,7 +26,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { source, amount, date, description, category, group, isRecurring, recurrence } = req.body;
+    const { source, amount, date, description, category, group, isRecurring, recurrence, tag } = req.body;
 
     // If group is specified, validate membership
     if (group) {
@@ -52,6 +52,7 @@ router.post('/', [
       description: description || '',
       category: category || 'General',
       group: group || undefined,
+      tag: tag || '',
       isRecurring: isRecurring || false,
       recurrence: isRecurring ? {
         frequency: recurrence.frequency,
@@ -168,7 +169,7 @@ router.put('/:id', [
       return res.status(403).json({ message: 'Not authorized to update this income' });
     }
 
-    const { source, amount, date, description, category, group, isRecurring, recurrence } = req.body;
+    const { source, amount, date, description, category, group, isRecurring, recurrence, tag } = req.body;
 
     if (source !== undefined) income.source = source;
     if (amount !== undefined) income.amount = amount;
@@ -176,6 +177,7 @@ router.put('/:id', [
     if (description !== undefined) income.description = description;
     if (category !== undefined) income.category = category;
     if (group !== undefined) income.group = group || undefined;
+    if (tag !== undefined) income.tag = tag;
     if (isRecurring !== undefined) {
       income.isRecurring = isRecurring;
       if (isRecurring && recurrence) {

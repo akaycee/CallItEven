@@ -11,6 +11,9 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  ThemeProvider,
+  createTheme,
+  useTheme,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import axios from 'axios';
@@ -19,6 +22,11 @@ import { AuthContext } from '../context/AuthContext';
 function Login() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
+  const parentTheme = useTheme();
+  const lightTheme = React.useMemo(
+    () => createTheme({ ...parentTheme, palette: { ...parentTheme.palette, mode: 'light' } }),
+    [parentTheme]
+  );
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -51,7 +59,9 @@ function Login() {
   };
 
   return (
+    <ThemeProvider theme={lightTheme}>
     <Box
+      data-testid="login-page"
       sx={{
         minHeight: '100vh',
         display: 'flex',
@@ -199,6 +209,7 @@ function Login() {
         </Card>
       </Container>
     </Box>
+    </ThemeProvider>
   );
 }
 

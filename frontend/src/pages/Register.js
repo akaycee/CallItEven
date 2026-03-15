@@ -11,6 +11,9 @@ import {
   Alert,
   InputAdornment,
   IconButton,
+  ThemeProvider,
+  createTheme,
+  useTheme,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock, Person } from '@mui/icons-material';
 import axios from 'axios';
@@ -19,6 +22,11 @@ import { AuthContext } from '../context/AuthContext';
 function Register() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
+  const parentTheme = useTheme();
+  const lightTheme = React.useMemo(
+    () => createTheme({ ...parentTheme, palette: { ...parentTheme.palette, mode: 'light' } }),
+    [parentTheme]
+  );
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -68,7 +76,9 @@ function Register() {
   };
 
   return (
+    <ThemeProvider theme={lightTheme}>
     <Box
+      data-testid="register-page"
       sx={{
         minHeight: '100vh',
         display: 'flex',
@@ -251,6 +261,7 @@ function Register() {
         </Card>
       </Container>
     </Box>
+    </ThemeProvider>
   );
 }
 
