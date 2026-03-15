@@ -24,6 +24,8 @@ import {
   LocalOffer,
   Receipt,
   AccountBalanceWallet,
+  AttachMoney,
+  ShowChart,
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
@@ -223,6 +225,20 @@ const NavBar = ({
           <MenuItem onClick={() => { navigate('/manage-budgets'); handleMenuClose(); }}>
             <ListItemIcon><AccountBalanceWallet fontSize="small" /></ListItemIcon>
             <ListItemText sx={{ color: 'text.primary' }}>Manage Budgets</ListItemText>
+          </MenuItem>
+        )}
+
+        {showLogo && !user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-income'); handleMenuClose(); }}>
+            <ListItemIcon><AttachMoney fontSize="small" /></ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Manage Income</ListItemText>
+          </MenuItem>
+        )}
+
+        {showLogo && !user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/cash-flow'); handleMenuClose(); }}>
+            <ListItemIcon><ShowChart fontSize="small" /></ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Cash Flow</ListItemText>
           </MenuItem>
         )}
 

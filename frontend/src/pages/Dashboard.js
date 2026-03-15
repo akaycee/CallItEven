@@ -8,7 +8,8 @@ import {
   Typography,
   Button,
   IconButton,
-  Fab,
+  SpeedDial,
+  SpeedDialAction,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -43,6 +44,8 @@ import {
   Edit,
   AccountBalance,
   AccountBalanceWallet,
+  AttachMoney,
+  ShowChart,
   Person,
   Delete,
   Receipt,
@@ -803,6 +806,22 @@ function Dashboard() {
             <ListItemText sx={{ color: 'text.primary' }}>Manage Budgets</ListItemText>
           </MenuItem>
         )}
+        {!user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-income'); handleProfileMenuClose(); }}>
+            <ListItemIcon>
+              <AttachMoney fontSize="small" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Manage Income</ListItemText>
+          </MenuItem>
+        )}
+        {!user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/cash-flow'); handleProfileMenuClose(); }}>
+            <ListItemIcon>
+              <ShowChart fontSize="small" />
+            </ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Cash Flow</ListItemText>
+          </MenuItem>
+        )}
         {user?.isAdmin && (
           <MenuItem onClick={() => { navigate('/manage-categories'); handleProfileMenuClose(); }}>
             <ListItemIcon>
@@ -1281,25 +1300,43 @@ function Dashboard() {
         </Card>
       </Container>
 
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="add"
-        sx={{ 
-          position: 'fixed', 
-          bottom: 32, 
+      {/* Floating Speed Dial */}
+      <SpeedDial
+        ariaLabel="Add new"
+        sx={{
+          position: 'fixed',
+          bottom: 32,
           right: 32,
-          width: 64,
-          height: 64,
-          background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
-          '&:hover': {
-            background: 'linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #0f766e 100%)',
+          '& .MuiSpeedDial-fab': {
+            width: 64,
+            height: 64,
+            background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #0f766e 100%)',
+            },
           },
         }}
-        onClick={() => navigate('/expenses/new')}
+        icon={<Add sx={{ fontSize: 32 }} />}
       >
-        <Add sx={{ fontSize: 32 }} />
-      </Fab>
+        <SpeedDialAction
+          icon={<Receipt />}
+          tooltipTitle="Add Expense"
+          onClick={() => navigate('/expenses/new')}
+          sx={{
+            bgcolor: 'background.paper',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        />
+        <SpeedDialAction
+          icon={<AttachMoney />}
+          tooltipTitle="Add Income"
+          onClick={() => navigate('/manage-income')}
+          sx={{
+            bgcolor: 'background.paper',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        />
+      </SpeedDial>
 
       {/* Expense Detail Dialog */}
       <Dialog

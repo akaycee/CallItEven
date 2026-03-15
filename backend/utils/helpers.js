@@ -113,10 +113,81 @@ const storePendingInvites = async (emails, groupId, invitedById, PendingGroupInv
   });
 };
 
+/**
+ * Expand a recurring income entry into individual occurrences within a date range.
+ * @param {Object} income - The recurring income document (plain object or Mongoose doc)
+ * @param {Date} rangeStart - Start of the query date range
+ * @param {Date} rangeEnd - End of the query date range
+ * @returns {Array} Array of virtual income instances with computed dates
+ */
+const expandRecurringIncome = (income, rangeStart, rangeEnd) => {
+  if (!income.isRecurring || !income.recurrence?.frequency) {
+    return [income];
+  }
+
+  const occurrences = [];
+  const baseDate = new Date(income.date);
+  const effectiveEnd = income.recurrence.endDate
+    ? new Date(Math.min(new Date(income.recurrence.endDate).getTime(), rangeEnd.getTime()))
+    : rangeEnd;
+
+  let current = new Date(baseDate);
+
+  const advance = (date, frequency) => {
+    const next = new Date(date);
+    switch (frequency) {
+      case 'weekly':
+        next.setDate(next.getDate() + 7);
+        break;
+      case 'biweekly':
+        next.setDate(next.getDate() + 14);
+        break;
+      case 'monthly':
+        next.setMonth(next.getMonth() + 1);
+        break;
+      case 'yearly':
+        next.setFullYear(next.getFullYear() + 1);
+        break;
+      default:
+        break;
+    }
+    return next;
+  };
+
+  // If the base date is after the range, no occurrences
+  if (current > effectiveEnd) {
+    return [];
+  }
+
+  // Advance to the first occurrence within or before the range
+  // (we need to find the first occurrence >= rangeStart)
+  while (current < rangeStart) {
+    const next = advance(current, income.recurrence.frequency);
+    if (next > effectiveEnd) break;
+    current = next;
+  }
+
+  // Generate occurrences within the range
+  while (current <= effectiveEnd) {
+    if (current >= rangeStart) {
+      const obj = typeof income.toObject === 'function' ? income.toObject() : { ...income };
+      occurrences.push({
+        ...obj,
+        date: new Date(current),
+        _isExpanded: true, // marker for virtual occurrences
+      });
+    }
+    current = advance(current, income.recurrence.frequency);
+  }
+
+  return occurrences;
+};
+
 module.exports = {
   escapeRegex,
   calculateSplits,
   validateExpenseUsers,
   resolveGroupMembers,
   storePendingInvites,
+  expandRecurringIncome,
 };

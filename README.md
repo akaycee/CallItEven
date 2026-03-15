@@ -1,6 +1,6 @@
 # CallItEven
 
-A modern expense splitting and personal budgeting web application built with the MERN stack and Material Design. Split bills with friends, track your own spending, and stay on budget.
+A modern expense splitting, personal budgeting, and income tracking web application built with the MERN stack and Material Design. Split bills with friends, track your own spending, manage income sources, and visualize your cash flow.
 
 ## Features
 
@@ -22,6 +22,15 @@ A modern expense splitting and personal budgeting web application built with the
 - 👥 **Groups** - Organize participants into groups for recurring splits
 - 🏷️ **Categories** - Categorize expenses with default and custom categories
 - 🎉 **Settlements** - Record payments to even up balances
+- 💵 **Income Tracking** - Track multiple income sources with categories and descriptions
+  - Recurring income support (weekly, biweekly, monthly, yearly)
+  - Optional group visibility for shared income
+  - Date-range filtering with automatic recurrence expansion
+- 📊 **Cash Flow Visualization** - Dedicated cash flow page with:
+  - **Sankey Diagram** - Visual flow from income sources → total income → expense categories (+ savings)
+  - **Bar Chart** - Monthly income vs expenses with net savings trend line
+  - Summary cards for total income, total expenses, and net savings
+  - Date range filters (month, quarter, year, custom) and group filtering
 
 ## Tech Stack
 
@@ -30,6 +39,8 @@ A modern expense splitting and personal budgeting web application built with the
 - Material-UI (MUI) 5
 - React Router 6
 - Axios
+- Chart.js 4 + react-chartjs-2 (Pie, Bar, Line charts)
+- chartjs-chart-sankey (Sankey/alluvial diagrams)
 - Context API for state management
 
 ### Backend
@@ -153,6 +164,16 @@ The application will open at `http://localhost:3000` and the API will run on `ht
 - `DELETE /api/budgets/:id` - Delete a budget
 - `GET /api/budgets/summary` - Get budget vs actual spending for the current month
 
+### Income
+- `POST /api/income` - Create a new income entry (supports recurring)
+- `GET /api/income` - Get all income for current user (with date range filtering and recurrence expansion)
+- `GET /api/income/:id` - Get single income entry
+- `PUT /api/income/:id` - Update income entry
+- `DELETE /api/income/:id` - Delete income entry
+
+### Cash Flow
+- `GET /api/cashflow` - Get aggregated cash flow data (income by source, expenses by category, monthly breakdown, totals)
+
 ## Project Structure
 
 ```
@@ -166,6 +187,7 @@ CallItEven/
 │   ├── models/
 │   │   ├── User.js
 │   │   ├── Expense.js
+│   │   ├── Income.js
 │   │   ├── Category.js
 │   │   ├── Group.js
 │   │   ├── Budget.js
@@ -174,6 +196,8 @@ CallItEven/
 │   │   ├── auth.js
 │   │   ├── users.js
 │   │   ├── expenses.js
+│   │   ├── income.js
+│   │   ├── cashflow.js
 │   │   ├── categories.js
 │   │   ├── groups.js
 │   │   ├── budgets.js
@@ -191,6 +215,8 @@ CallItEven/
 │   │   ├── components/
 │   │   │   ├── BalanceSummaryCard.js
 │   │   │   ├── BudgetOverview.js
+│   │   │   ├── CashFlowBarChart.js
+│   │   │   ├── CashFlowSankey.js
 │   │   │   ├── CategoryPieChart.js
 │   │   │   ├── CelebrationOverlay.js
 │   │   │   ├── EditProfileDialog.js
@@ -205,11 +231,13 @@ CallItEven/
 │   │   │   ├── Login.js
 │   │   │   ├── Register.js
 │   │   │   ├── Dashboard.js
+│   │   │   ├── CashFlow.js
 │   │   │   ├── CreateExpense.js
 │   │   │   ├── EditExpense.js
 │   │   │   ├── ManageBudgets.js
 │   │   │   ├── ManageCategories.js
 │   │   │   ├── ManageGroups.js
+│   │   │   ├── ManageIncome.js
 │   │   │   ├── ManageUsers.js
 │   │   │   └── NotFound.js
 │   │   ├── App.js
@@ -220,9 +248,9 @@ CallItEven/
 
 ## Running Tests
 
-The project includes a comprehensive test suite with **331 tests** covering both backend and frontend to prevent regressions when adding new features.
+The project includes a comprehensive test suite with **396 tests** covering both backend and frontend to prevent regressions when adding new features.
 
-### Backend Tests (211 tests)
+### Backend Tests (249 tests)
 
 Uses **Jest**, **Supertest**, and **mongodb-memory-server** (in-memory MongoDB for isolated testing).
 
@@ -246,9 +274,11 @@ npm run test:watch
   - Categories: default/custom categories, admin-only create/delete, expense reassignment
   - Groups: CRUD, pending invites for unknown emails, creator-only permissions
   - Budgets: CRUD, category validation, owner-only access, monthly summary with personal + shared expense aggregation
+  - Income: CRUD, recurring income creation/validation, date-range filtering, recurrence expansion, group validation, authorization
+  - Cash Flow: aggregation accuracy, recurring income expansion, user expense share calculation, settlement exclusion, date-range filtering
   - Admin: user management, cascade delete, platform stats
 
-### Frontend Tests (120 tests)
+### Frontend Tests (147 tests)
 
 Uses **Jest** (via react-scripts) and **React Testing Library**.
 
@@ -266,9 +296,9 @@ npx react-scripts test --testPathPattern="Login.test"
 ```
 
 **What's covered:**
-- **Component tests** — BalanceSummaryCard, ExpenseSummaryCard, RecentActivityList, CelebrationOverlay, EditProfileDialog, EvenUpDialog, BudgetOverview
-- **Page tests** — Login, Register, Dashboard, CreateExpense, EditExpense, ManageGroups, ManageCategories, ManageUsers, ManageBudgets
-- Form rendering, validation (password mismatch, min length), API calls, error display, auth redirects, admin-only access, personal expense toggle, budget progress bars
+- **Component tests** — BalanceSummaryCard, ExpenseSummaryCard, RecentActivityList, CelebrationOverlay, EditProfileDialog, EvenUpDialog, BudgetOverview, CashFlowSankey, CashFlowBarChart
+- **Page tests** — Login, Register, Dashboard, CreateExpense, EditExpense, ManageGroups, ManageCategories, ManageUsers, ManageBudgets, ManageIncome, CashFlow
+- Form rendering, validation (password mismatch, min length), API calls, error display, auth redirects, admin-only access, personal expense toggle, budget progress bars, income CRUD, chart rendering, empty states
 
 ## Security Features
 
@@ -288,6 +318,9 @@ npx react-scripts test --testPathPattern="Login.test"
 - Budget alerts/notifications when approaching limits
 - Weekly/yearly budget periods
 - Recurring expenses
+- Income vs budget comparison
+- Savings goals tracking
+- Year-over-year financial trends
 
 ## Contributing
 
