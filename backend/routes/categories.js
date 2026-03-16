@@ -1,9 +1,11 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const { protect } = require('../middleware/auth');
 const { admin } = require('../middleware/admin');
 const Category = require('../models/Category');
 const Expense = require('../models/Expense');
 const { escapeRegex } = require('../utils/helpers');
+const { DEFAULT_CATEGORIES } = require('../utils/constants');
 
 const router = express.Router();
 
@@ -12,26 +14,12 @@ const router = express.Router();
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    // Get default categories
-    const defaultCategories = [
-      'Food & Dining',
-      'Transportation',
-      'Shopping',
-      'Entertainment',
-      'Groceries',
-      'Utilities',
-      'Healthcare',
-      'Travel',
-      'Housing',
-      'Other'
-    ];
-
     // If requesting detailed view (for admin)
     if (req.query.detailed === 'true' && req.user.isAdmin) {
       const customCategories = await Category.find().populate('createdBy', 'name email');
       
       const categoriesWithDetails = [
-        ...defaultCategories.map(name => ({ name, isDefault: true })),
+        ...DEFAULT_CATEGORIES.map(name => ({ name, isDefault: true })),
         ...customCategories.map(cat => ({ 
           name: cat.name, 
           isDefault: false,
@@ -48,11 +36,11 @@ router.get('/', protect, async (req, res) => {
     const customCategories = await Category.find().distinct('name');
 
     // Combine and remove duplicates
-    const allCategories = [...new Set([...defaultCategories, ...customCategories])].sort();
+    const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...customCategories])].sort();
 
     res.json(allCategories);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -90,7 +78,7 @@ router.post('/', protect, async (req, res) => {
 
     res.status(201).json({ name: category.name });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -125,7 +113,7 @@ router.delete('/:name', protect, async (req, res) => {
 
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

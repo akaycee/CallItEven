@@ -1,6 +1,8 @@
 // Express app module (separated from server.js for testing)
 const express = require('express');
+const logger = require('./utils/logger');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -14,21 +16,44 @@ const cashflowRoutes = require('./routes/cashflow');
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// CORS — restrict to known origins (fall back to open in dev/test)
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : undefined;
+app.use(cors(allowedOrigins ? { origin: allowedOrigins } : undefined));
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests, please try again later.' }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many login attempts, please try again later.' }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/groups', groupRoutes);
-app.use('/api/budgets', budgetRoutes);
-app.use('/api/income', incomeRoutes);
-app.use('/api/cashflow', cashflowRoutes);
+// Apply stricter rate limit to auth routes
+app.use('/api/auth', authLimiter, authRoutes);
+
+// Apply general rate limit to all other API routes
+app.use('/api/users', apiLimiter, userRoutes);
+app.use('/api/expenses', apiLimiter, expenseRoutes);
+app.use('/api/categories', apiLimiter, categoryRoutes);
+app.use('/api/admin', apiLimiter, adminRoutes);
+app.use('/api/groups', apiLimiter, groupRoutes);
+app.use('/api/budgets', apiLimiter, budgetRoutes);
+app.use('/api/income', apiLimiter, incomeRoutes);
+app.use('/api/cashflow', apiLimiter, cashflowRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -37,8 +62,8 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!', error: err.message });
+  logger.error({ err }, err.message || 'Unhandled error');
+  res.status(500).json({ message: 'Something went wrong!' });
 });
 
 module.exports = app;

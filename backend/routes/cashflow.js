@@ -1,9 +1,10 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const mongoose = require('mongoose');
 const { protect } = require('../middleware/auth');
 const Income = require('../models/Income');
 const Expense = require('../models/Expense');
-const { expandRecurringIncome } = require('../utils/helpers');
+const { parseDateRange, fetchIncomeWithRecurring } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -13,15 +14,7 @@ const router = express.Router();
 router.get('/', protect, async (req, res) => {
   try {
     // Determine date range from query params or default to current month
-    let startDate, endDate;
-    if (req.query.startDate && req.query.endDate) {
-      startDate = new Date(req.query.startDate + 'T00:00:00.000Z');
-      endDate = new Date(req.query.endDate + 'T23:59:59.999Z');
-    } else {
-      const now = new Date();
-      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
-    }
+    const { startDate, endDate } = parseDateRange(req.query);
 
     const groupFilter = req.query.group || null;
 
@@ -29,28 +22,7 @@ router.get('/', protect, async (req, res) => {
     const incomeQuery = { user: req.user._id };
     if (groupFilter) incomeQuery.group = groupFilter;
 
-    // Non-recurring within range
-    const nonRecurringIncome = await Income.find({
-      ...incomeQuery,
-      isRecurring: { $ne: true },
-      date: { $gte: startDate, $lte: endDate }
-    });
-
-    // Recurring that started before range end
-    const recurringIncome = await Income.find({
-      ...incomeQuery,
-      isRecurring: true,
-      date: { $lte: endDate }
-    });
-
-    const expandedRecurring = recurringIncome.flatMap(inc =>
-      expandRecurringIncome(inc, startDate, endDate)
-    );
-
-    const allIncome = [
-      ...nonRecurringIncome.map(i => i.toObject()),
-      ...expandedRecurring
-    ];
+    const allIncome = await fetchIncomeWithRecurring(Income, incomeQuery, startDate, endDate);
 
     // --- Fetch expenses via aggregation pipeline ---
     const expenseMatch = {
@@ -164,7 +136,7 @@ router.get('/', protect, async (req, res) => {
       monthly
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

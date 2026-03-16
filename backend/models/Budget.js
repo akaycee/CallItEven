@@ -15,11 +15,9 @@ const budgetSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   }
+}, {
+  timestamps: true
 });
 
 // One budget per category per user

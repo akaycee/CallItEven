@@ -1,9 +1,10 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Income = require('../models/Income');
 const Group = require('../models/Group');
-const { expandRecurringIncome, parsePagination } = require('../utils/helpers');
+const { expandRecurringIncome, parsePagination, fetchIncomeWithRecurring } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -62,7 +63,7 @@ router.post('/', [
 
     res.status(201).json(income);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -86,34 +87,14 @@ router.get('/', protect, async (req, res) => {
 
     // For date-filtered queries, we need to fetch recurring items that might start before the range
     if (startDate && endDate) {
-      // Get non-recurring income within the date range
-      const nonRecurring = await Income.find({
-        ...query,
-        isRecurring: { $ne: true },
-        date: { $gte: startDate, $lte: endDate }
-      }).sort({ date: -1 });
-
-      // Get all recurring income that started on or before the end of the range
-      const recurring = await Income.find({
-        ...query,
-        isRecurring: true,
-        date: { $lte: endDate }
-      }).sort({ date: -1 });
-
-      // Expand recurring entries
-      const expandedRecurring = recurring.flatMap(inc =>
-        expandRecurringIncome(inc, startDate, endDate)
-      );
-
-      const combined = [...nonRecurring.map(i => i.toObject()), ...expandedRecurring]
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
-
+      const combined = await fetchIncomeWithRecurring(Income, query, startDate, endDate);
+      combined.sort((a, b) => new Date(b.date) - new Date(a.date));
       return res.json(combined);
     }
 
     // No date filter — return raw records (no expansion)
     const { page, limit, skip } = parsePagination(req.query);
-    let incomeQuery = Income.find(query).sort({ date: -1 });
+    let incomeQuery = Income.find(query).sort({ date: -1 }).lean();
 
     if (limit > 0) {
       const total = await Income.countDocuments(query);
@@ -124,7 +105,7 @@ router.get('/', protect, async (req, res) => {
     const incomes = await incomeQuery;
     res.json(incomes);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -146,7 +127,7 @@ router.get('/:id', protect, async (req, res) => {
 
     res.json(income);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -202,7 +183,7 @@ router.put('/:id', [
     await income.save();
     res.json(income);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -225,7 +206,7 @@ router.delete('/:id', protect, async (req, res) => {
     await income.deleteOne();
     res.json({ message: 'Income deleted successfully' });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

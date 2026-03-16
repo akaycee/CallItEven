@@ -1,9 +1,10 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Expense = require('../models/Expense');
 const User = require('../models/User');
-const { validateExpenseUsers, calculateSplits, parsePagination } = require('../utils/helpers');
+const { validateExpenseUsers, calculateSplits, parsePagination, resolveExpenseSplits } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -27,24 +28,11 @@ router.post('/', [
 
     const { description, totalAmount, paidBy, splitType, splits, category, isPersonal, tag } = req.body;
 
-    let calculatedSplits;
-
-    if (isPersonal) {
-      // Personal expense: auto-assign single split to the current user
-      calculatedSplits = [{
-        user: req.user._id,
-        amount: parseFloat(totalAmount),
-        percentage: 100
-      }];
-    } else {
-      // Validate that paidBy and split users exist and are not admin
-      const validation = await validateExpenseUsers(paidBy, splits, User);
-      if (!validation.valid) {
-        return res.status(400).json({ message: validation.error });
-      }
-
-      // Calculate split amounts based on split type
-      calculatedSplits = calculateSplits(totalAmount, splitType, splits);
+    const { splits: calculatedSplits, error: splitError } = await resolveExpenseSplits({
+      isPersonal, userId: req.user._id, totalAmount, paidBy, splitType, splits, User,
+    });
+    if (splitError) {
+      return res.status(400).json({ message: splitError });
     }
 
     // Create expense
@@ -66,8 +54,8 @@ router.post('/', [
 
     res.status(201).json(expense);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    logger.error({ err: error }, error.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -88,7 +76,8 @@ router.get('/', protect, async (req, res) => {
     let query = Expense.find(filter)
       .populate('paidBy splits.user createdBy', 'name email')
       .populate('group', 'name members')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (limit > 0) {
       const total = await Expense.countDocuments(filter);
@@ -99,7 +88,7 @@ router.get('/', protect, async (req, res) => {
     const expenses = await query;
     res.json(expenses);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -117,7 +106,8 @@ router.get('/personal', protect, async (req, res) => {
 
     let query = Expense.find(filter)
       .populate('paidBy splits.user createdBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (limit > 0) {
       const total = await Expense.countDocuments(filter);
@@ -128,7 +118,7 @@ router.get('/personal', protect, async (req, res) => {
     const expenses = await query;
     res.json(expenses);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -144,7 +134,8 @@ router.get('/tagged', protect, async (req, res) => {
     let query = Expense.find(filter)
       .populate('paidBy splits.user createdBy', 'name email')
       .populate('group', 'name members')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (limit > 0) {
       const total = await Expense.countDocuments(filter);
@@ -155,7 +146,7 @@ router.get('/tagged', protect, async (req, res) => {
     const expenses = await query;
     res.json(expenses);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -247,7 +238,7 @@ router.get('/balance/summary', protect, async (req, res) => {
 
     res.json(summary);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -259,16 +250,18 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const expense = await Expense.findById(req.params.id)
       .populate('paidBy splits.user createdBy', 'name email')
-    .populate('group', 'name members');
+      .populate('group', 'name members')
+      .lean();
 
     if (!expense) {
       return res.status(404).json({ message: 'Expense not found' });
     }
 
     // Check if user has access to this expense
-    const hasAccess = expense.createdBy._id.equals(req.user._id) ||
-                     expense.paidBy._id.equals(req.user._id) ||
-                     expense.splits.some(split => split.user._id.equals(req.user._id));
+    const userId = req.user._id.toString();
+    const hasAccess = expense.createdBy._id.toString() === userId ||
+                     expense.paidBy._id.toString() === userId ||
+                     expense.splits.some(split => split.user._id.toString() === userId);
 
     if (!hasAccess) {
       return res.status(403).json({ message: 'Not authorized to view this expense' });
@@ -276,7 +269,7 @@ router.get('/:id', protect, async (req, res) => {
 
     res.json(expense);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -312,24 +305,11 @@ router.put('/:id', [
 
     const { description, totalAmount, paidBy, splitType, splits, category, isPersonal, tag } = req.body;
 
-    let calculatedSplits;
-
-    if (isPersonal) {
-      // Personal expense: auto-assign single split to the current user
-      calculatedSplits = [{
-        user: req.user._id,
-        amount: parseFloat(totalAmount),
-        percentage: 100
-      }];
-    } else {
-      // Validate that paidBy and split users exist and are not admin
-      const validation = await validateExpenseUsers(paidBy, splits, User);
-      if (!validation.valid) {
-        return res.status(400).json({ message: validation.error });
-      }
-
-      // Calculate split amounts based on split type
-      calculatedSplits = calculateSplits(totalAmount, splitType, splits);
+    const { splits: calculatedSplits, error: splitError } = await resolveExpenseSplits({
+      isPersonal, userId: req.user._id, totalAmount, paidBy, splitType, splits, User,
+    });
+    if (splitError) {
+      return res.status(400).json({ message: splitError });
     }
 
     // Update expense fields
@@ -350,8 +330,8 @@ router.put('/:id', [
 
     res.json(expense);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    logger.error({ err: error }, error.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -374,7 +354,7 @@ router.delete('/:id', protect, async (req, res) => {
     await expense.deleteOne();
     res.json({ message: 'Expense deleted successfully' });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

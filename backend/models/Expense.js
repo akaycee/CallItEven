@@ -60,11 +60,9 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: ''
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   }
+}, {
+  timestamps: true
 });
 
 // Indexes for query performance

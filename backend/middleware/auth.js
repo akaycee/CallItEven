@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 const User = require('../models/User');
 
 const protect = async (req, res, next) => {
@@ -13,8 +14,8 @@ const protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from token
-    req.user = await User.findById(decoded.id).select('-password');
+    // Get user from token — only select fields needed by route handlers
+    req.user = await User.findById(decoded.id).select('_id name email isAdmin');
 
     if (!req.user) {
       return res.status(401).json({ message: 'User not found' });
@@ -22,7 +23,7 @@ const protect = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     return res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };

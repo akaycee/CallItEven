@@ -1,25 +1,14 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Budget = require('../models/Budget');
 const Expense = require('../models/Expense');
 const Category = require('../models/Category');
+const { parseDateRange } = require('../utils/helpers');
+const { DEFAULT_CATEGORIES } = require('../utils/constants');
 
 const router = express.Router();
-
-// Default categories (same as in categories route)
-const DEFAULT_CATEGORIES = [
-  'Food & Dining',
-  'Transportation',
-  'Shopping',
-  'Entertainment',
-  'Groceries',
-  'Utilities',
-  'Healthcare',
-  'Travel',
-  'Housing',
-  'Other'
-];
 
 /**
  * Get all valid category names (defaults + custom)
@@ -34,10 +23,10 @@ async function getAllCategoryNames() {
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const budgets = await Budget.find({ user: req.user._id }).sort({ category: 1 });
+    const budgets = await Budget.find({ user: req.user._id }).sort({ category: 1 }).lean();
     res.json(budgets);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -48,22 +37,14 @@ router.get('/', protect, async (req, res) => {
 router.get('/summary', protect, async (req, res) => {
   try {
     // Get all budgets for this user
-    const budgets = await Budget.find({ user: req.user._id });
+    const budgets = await Budget.find({ user: req.user._id }).lean();
 
     if (budgets.length === 0) {
       return res.json([]);
     }
 
     // Determine date range from query params or default to current month
-    let startDate, endDate;
-    if (req.query.startDate && req.query.endDate) {
-      startDate = new Date(req.query.startDate + 'T00:00:00.000Z');
-      endDate = new Date(req.query.endDate + 'T23:59:59.999Z');
-    } else {
-      const now = new Date();
-      startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
-    }
+    const { startDate, endDate } = parseDateRange(req.query);
 
     // Use aggregation pipeline for efficient per-category spending
     const spendingAgg = await Expense.aggregate([
@@ -99,7 +80,7 @@ router.get('/summary', protect, async (req, res) => {
 
     res.json(summary);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -140,7 +121,7 @@ router.post('/', [
 
     res.status(201).json(budget);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -174,7 +155,7 @@ router.put('/:id', [
 
     res.json(budget);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -198,7 +179,7 @@ router.delete('/:id', protect, async (req, res) => {
     await budget.deleteOne();
     res.json({ message: 'Budget deleted successfully' });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

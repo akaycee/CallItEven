@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const { protect } = require('../middleware/auth');
 const Group = require('../models/Group');
 const User = require('../models/User');
@@ -22,7 +23,8 @@ router.get('/', protect, async (req, res) => {
         match: { isAdmin: { $ne: true } }
       })
       .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (limit > 0) {
       const total = await Group.countDocuments(filter);
@@ -33,7 +35,7 @@ router.get('/', protect, async (req, res) => {
     const groups = await query;
     res.json(groups);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -49,7 +51,8 @@ router.get('/:id', protect, async (req, res) => {
         select: 'name email',
         match: { isAdmin: { $ne: true } }
       })
-      .populate('createdBy', 'name email');
+      .populate('createdBy', 'name email')
+      .lean();
 
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
@@ -63,7 +66,7 @@ router.get('/:id', protect, async (req, res) => {
 
     res.json(group);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -95,13 +98,13 @@ router.post('/', protect, async (req, res) => {
     // Store pending invitations for users who haven't signed up yet
     await storePendingInvites(notFoundEmails, group._id, req.user._id, PendingGroupInvite);
 
-    const populatedGroup = await Group.findById(group._id)
-      .populate('members', 'name email')
-      .populate('createdBy', 'name email');
+    // Populate the created doc directly instead of re-fetching
+    await group.populate('members', 'name email');
+    await group.populate('createdBy', 'name email');
 
-    res.status(201).json({ group: populatedGroup, notFoundEmails });
+    res.status(201).json({ group, notFoundEmails });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: error.message || 'Server error' });
   }
 });
@@ -145,13 +148,13 @@ router.put('/:id', protect, async (req, res) => {
 
     await group.save();
 
-    const populatedGroup = await Group.findById(group._id)
-      .populate('members', 'name email')
-      .populate('createdBy', 'name email');
+    // Populate directly instead of re-fetching
+    await group.populate('members', 'name email');
+    await group.populate('createdBy', 'name email');
 
-    res.json({ group: populatedGroup, notFoundEmails });
+    res.json({ group, notFoundEmails });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: error.message || 'Server error' });
   }
 });
@@ -176,7 +179,7 @@ router.delete('/:id', protect, async (req, res) => {
 
     res.json({ message: 'Group deleted successfully' });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

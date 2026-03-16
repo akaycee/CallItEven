@@ -1,16 +1,18 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const PendingGroupInvite = require('../models/PendingGroupInvite');
 const Group = require('../models/Group');
+const { toUserResponse } = require('../utils/helpers');
 
 const router = express.Router();
 
 // Generate JWT token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d'
+    expiresIn: '7d'
   });
 };
 
@@ -63,16 +65,9 @@ router.post('/register', [
     }
 
     // Return user data with token
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin || false,
-      themeMode: user.themeMode || 'light',
-      token: generateToken(user._id)
-    });
+    res.status(201).json(toUserResponse(user, generateToken(user._id)));
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -106,16 +101,9 @@ router.post('/login', [
     }
 
     // Return user data with token
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin || false,
-      themeMode: user.themeMode || 'light',
-      token: generateToken(user._id)
-    });
+    res.json(toUserResponse(user, generateToken(user._id)));
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -46,7 +46,12 @@ const calculateSplits = (totalAmount, splitType, splits) => {
  * @returns {Object} { valid: boolean, error: string|null }
  */
 const validateExpenseUsers = async (paidBy, splits, User) => {
-  const paidByUser = await User.findById(paidBy);
+  // Combine paidBy and split user IDs into a single query to avoid N+1
+  const splitUserIds = splits.map(s => s.user);
+  const allUserIds = [paidBy, ...splitUserIds.filter(id => id.toString() !== paidBy.toString())];
+  const allUsers = await User.find({ _id: { $in: allUserIds } }).select('_id isAdmin').lean();
+
+  const paidByUser = allUsers.find(u => u._id.toString() === paidBy.toString());
   if (!paidByUser) {
     return { valid: false, error: 'Invalid paidBy user' };
   }
@@ -54,14 +59,12 @@ const validateExpenseUsers = async (paidBy, splits, User) => {
     return { valid: false, error: 'Admin users cannot be added to expenses' };
   }
 
-  const splitUserIds = splits.map(s => s.user);
-  const splitUsers = await User.find({ _id: { $in: splitUserIds } });
-
-  if (splitUsers.length !== splitUserIds.length) {
+  const foundSplitUsers = allUsers.filter(u => splitUserIds.some(id => id.toString() === u._id.toString()));
+  if (foundSplitUsers.length !== splitUserIds.length) {
     return { valid: false, error: 'Invalid user in splits' };
   }
 
-  if (splitUsers.some(u => u.isAdmin)) {
+  if (foundSplitUsers.some(u => u.isAdmin)) {
     return { valid: false, error: 'Admin users cannot be added to expenses' };
   }
 
@@ -196,6 +199,108 @@ const parsePagination = (query) => {
   return { page, limit, skip };
 };
 
+/**
+ * Build a standardised user response object.
+ * @param {Object} user - Mongoose user document or plain object
+ * @param {string} [token] - Optional JWT token to include
+ * @returns {Object} Sanitised user payload
+ */
+const toUserResponse = (user, token) => {
+  const res = {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    isAdmin: user.isAdmin || false,
+    themeMode: user.themeMode || 'light',
+  };
+  if (user.notes !== undefined) res.notes = user.notes || '';
+  if (token) res.token = token;
+  return res;
+};
+
+/**
+ * Parse startDate / endDate from req.query with a fallback to the current month.
+ * @param {Object} query - Express req.query
+ * @returns {{ startDate: Date, endDate: Date }}
+ */
+const parseDateRange = (query) => {
+  if (query.startDate && query.endDate) {
+    return {
+      startDate: new Date(query.startDate + 'T00:00:00.000Z'),
+      endDate: new Date(query.endDate + 'T23:59:59.999Z'),
+    };
+  }
+  const now = new Date();
+  return {
+    startDate: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)),
+    endDate: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999)),
+  };
+};
+
+/**
+ * Fetch income entries (non-recurring + expanded recurring) for a user within a date range.
+ * @param {Object} Income - Mongoose Income model
+ * @param {Object} baseQuery - Base filter (e.g. { user: userId })
+ * @param {Date} startDate
+ * @param {Date} endDate
+ * @returns {Promise<Array>} Combined array of income objects (lean)
+ */
+const fetchIncomeWithRecurring = async (Income, baseQuery, startDate, endDate) => {
+  const nonRecurring = await Income.find({
+    ...baseQuery,
+    isRecurring: { $ne: true },
+    date: { $gte: startDate, $lte: endDate },
+  }).sort({ date: -1 }).lean();
+
+  const recurring = await Income.find({
+    ...baseQuery,
+    isRecurring: true,
+    date: { $lte: endDate },
+  }).sort({ date: -1 }).lean();
+
+  const expandedRecurring = recurring.flatMap(inc =>
+    expandRecurringIncome(inc, startDate, endDate)
+  );
+
+  return [...nonRecurring, ...expandedRecurring];
+};
+
+/**
+ * Resolve splits for an expense (personal or shared).
+ * Validates users, calculates amounts, and returns calculated splits.
+ * @param {Object} params
+ * @param {boolean} params.isPersonal
+ * @param {Object} params.userId - Current user's ObjectId
+ * @param {number} params.totalAmount
+ * @param {string} params.paidBy
+ * @param {string} params.splitType
+ * @param {Array}  params.splits
+ * @param {Object} params.User - Mongoose User model
+ * @returns {Promise<{ splits: Array|null, error: string|null }>}
+ */
+const resolveExpenseSplits = async ({ isPersonal, userId, totalAmount, paidBy, splitType, splits, User }) => {
+  if (isPersonal) {
+    return {
+      splits: [{
+        user: userId,
+        amount: parseFloat(totalAmount),
+        percentage: 100,
+      }],
+      error: null,
+    };
+  }
+
+  const validation = await validateExpenseUsers(paidBy, splits, User);
+  if (!validation.valid) {
+    return { splits: null, error: validation.error };
+  }
+
+  return {
+    splits: calculateSplits(totalAmount, splitType, splits),
+    error: null,
+  };
+};
+
 module.exports = {
   escapeRegex,
   calculateSplits,
@@ -204,4 +309,8 @@ module.exports = {
   storePendingInvites,
   expandRecurringIncome,
   parsePagination,
+  toUserResponse,
+  parseDateRange,
+  fetchIncomeWithRecurring,
+  resolveExpenseSplits,
 };

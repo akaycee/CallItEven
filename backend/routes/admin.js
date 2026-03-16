@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const { protect } = require('../middleware/auth');
 const { admin } = require('../middleware/admin');
 const User = require('../models/User');
@@ -17,7 +18,8 @@ router.get('/users', protect, admin, async (req, res) => {
 
     let query = User.find(filter)
       .select('-password')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (limit > 0) {
       const total = await User.countDocuments(filter);
@@ -28,7 +30,7 @@ router.get('/users', protect, admin, async (req, res) => {
     const users = await query;
     res.json(users);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -59,7 +61,12 @@ router.put('/users/:id', protect, admin, async (req, res) => {
       user.isAdmin = isAdmin;
     }
 
-    await user.save();
+    // Use updateOne to skip the pre-save password hash hook
+    await User.updateOne({ _id: user._id }, {
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin
+    });
 
     res.json({
       _id: user._id,
@@ -69,7 +76,7 @@ router.put('/users/:id', protect, admin, async (req, res) => {
       createdAt: user.createdAt
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -102,7 +109,7 @@ router.delete('/users/:id', protect, admin, async (req, res) => {
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -124,7 +131,7 @@ router.get('/stats', protect, admin, async (req, res) => {
       totalAmount: totalAmount[0]?.total || 0
     });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

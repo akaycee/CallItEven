@@ -1,7 +1,8 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');
-const { escapeRegex } = require('../utils/helpers');
+const { escapeRegex, toUserResponse } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -23,11 +24,12 @@ router.get('/search', protect, async (req, res) => {
       isAdmin: { $ne: true } // Exclude admin users
     })
     .select('-password')
-    .limit(10);
+    .limit(10)
+    .lean();
 
     res.json(users);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -37,17 +39,10 @@ router.get('/search', protect, async (req, res) => {
 // @access  Private
 router.get('/profile', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin || false,
-      themeMode: user.themeMode || 'light',
-      notes: user.notes || '',
-    });
+    const user = await User.findById(req.user._id).select('-password').lean();
+    res.json(toUserResponse(user));
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -87,16 +82,9 @@ router.put('/profile', protect, async (req, res) => {
 
     await user.save();
 
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin || false,
-      themeMode: user.themeMode || 'light',
-      notes: user.notes || '',
-    });
+    res.json(toUserResponse(user));
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -120,7 +108,7 @@ router.put('/notes', protect, async (req, res) => {
 
     res.json({ notes });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -136,13 +124,11 @@ router.put('/theme', protect, async (req, res) => {
       return res.status(400).json({ message: 'Invalid theme mode' });
     }
 
-    const user = await User.findById(req.user._id);
-    user.themeMode = themeMode;
-    await user.save();
+    await User.findByIdAndUpdate(req.user._id, { themeMode });
 
-    res.json({ themeMode: user.themeMode });
+    res.json({ themeMode });
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

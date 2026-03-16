@@ -17,12 +17,12 @@ const pendingGroupInviteSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    expires: 2592000, // Auto-delete after 30 days
-  },
+}, {
+  timestamps: true
 });
+
+// TTL index: auto-delete after 30 days based on createdAt
+pendingGroupInviteSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
 
 // Create compound index for efficient lookups
 pendingGroupInviteSchema.index({ email: 1, group: 1 }, { unique: true });
