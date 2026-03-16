@@ -16,6 +16,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 import ExpenseForm from '../components/ExpenseForm';
+import BottomBar from '../components/BottomBar';
 
 function CreateExpense({ onDone, isDialog = false }) {
   const navigate = useNavigate();
@@ -226,7 +227,7 @@ function CreateExpense({ onDone, isDialog = false }) {
       </AppBar>
       )}
 
-      <Container maxWidth="md" sx={{ mt: isDialog ? 0 : 4, mb: 4 }}>
+      <Container maxWidth="md" sx={{ mt: isDialog ? 0 : 4, mb: isDialog ? 4 : 10 }}>
         <Card elevation={0}>
           <CardContent sx={{ p: 5 }}>
             <ExpenseForm
@@ -253,6 +254,7 @@ function CreateExpense({ onDone, isDialog = false }) {
           </CardContent>
         </Card>
       </Container>
+      {!isDialog && <BottomBar />}
     </Box>
   );
 }

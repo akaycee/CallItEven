@@ -31,6 +31,7 @@ import { Delete, Add, Edit } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar';
+import BottomBar from '../components/BottomBar';
 
 function ManageBudgets() {
   const navigate = useNavigate();
@@ -256,7 +257,7 @@ function ManageBudgets() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Manage Budgets" showBack backPath="/dashboard" />
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
@@ -736,6 +737,7 @@ function ManageBudgets() {
           </>
         )}
       </Dialog>
+      <BottomBar />
     </Box>
   );
 }

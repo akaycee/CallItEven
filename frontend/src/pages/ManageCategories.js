@@ -27,6 +27,7 @@ import {
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar';
+import BottomBar from '../components/BottomBar';
 
 function ManageCategories() {
   const navigate = useNavigate();
@@ -115,7 +116,7 @@ function ManageCategories() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Manage Categories" />
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
@@ -344,6 +345,7 @@ function ManageCategories() {
           </Button>
         </DialogActions>
       </Dialog>
+      <BottomBar />
     </Box>
   );
 }

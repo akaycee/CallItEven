@@ -33,6 +33,7 @@ import {
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar';
+import BottomBar from '../components/BottomBar';
 
 function ManageUsers() {
   const navigate = useNavigate();
@@ -137,7 +138,7 @@ function ManageUsers() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Manage Users" />
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 10 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
@@ -443,6 +444,7 @@ function ManageUsers() {
           </Button>
         </DialogActions>
       </Dialog>
+      <BottomBar />
     </Box>
   );
 }

@@ -19,6 +19,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 import ExpenseForm from '../components/ExpenseForm';
+import BottomBar from '../components/BottomBar';
 
 function EditExpense() {
   const navigate = useNavigate();
@@ -268,7 +269,7 @@ function EditExpense() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
         <Card elevation={0}>
           <CardContent sx={{ p: 5 }}>
             <ExpenseForm
@@ -291,6 +292,7 @@ function EditExpense() {
           </CardContent>
         </Card>
       </Container>
+      <BottomBar />
     </Box>
   );
 }

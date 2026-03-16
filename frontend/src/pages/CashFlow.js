@@ -22,6 +22,7 @@ import {
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar';
+import BottomBar from '../components/BottomBar';
 import CashFlowSankey from '../components/CashFlowSankey';
 import CashFlowBarChart from '../components/CashFlowBarChart';
 
@@ -133,7 +134,7 @@ function CashFlow() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Cash Flow" showBack backPath="/dashboard" />
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 10 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
@@ -297,6 +298,7 @@ function CashFlow() {
           </>
         ) : null}
       </Container>
+      <BottomBar />
     </Box>
   );
 }

@@ -41,6 +41,7 @@ import {
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar';
+import BottomBar from '../components/BottomBar';
 
 function ManageIncome({ onDone, isDialog = false }) {
   const navigate = useNavigate();
@@ -453,7 +454,7 @@ function ManageIncome({ onDone, isDialog = false }) {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Manage Income" showBack backPath="/dashboard" />
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
@@ -774,6 +775,7 @@ function ManageIncome({ onDone, isDialog = false }) {
           </Button>
         </DialogActions>
       </Dialog>
+      <BottomBar />
     </Box>
   );
 }

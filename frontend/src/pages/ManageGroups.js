@@ -32,6 +32,7 @@ import {
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import NavBar from '../components/NavBar';
+import BottomBar from '../components/BottomBar';
 
 function ManageGroups() {
   const navigate = useNavigate();
@@ -283,7 +284,7 @@ function ManageGroups() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Manage Groups" showBack backPath="/dashboard" />
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+      <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
         {success && (
           <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
             {success}
@@ -565,6 +566,7 @@ function ManageGroups() {
           </Button>
         </DialogActions>
       </Dialog>
+      <BottomBar />
     </Box>
   );
 }
