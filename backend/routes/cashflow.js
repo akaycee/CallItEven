@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { protect } = require('../middleware/auth');
 const Income = require('../models/Income');
 const Expense = require('../models/Expense');
@@ -51,15 +52,47 @@ router.get('/', protect, async (req, res) => {
       ...expandedRecurring
     ];
 
-    // --- Fetch expenses ---
-    const expenseQuery = {
+    // --- Fetch expenses via aggregation pipeline ---
+    const expenseMatch = {
       'splits.user': req.user._id,
       createdAt: { $gte: startDate, $lte: endDate },
       category: { $not: /^Settlement/ }
     };
-    if (groupFilter) expenseQuery.group = groupFilter;
+    if (groupFilter) expenseMatch.group = new mongoose.Types.ObjectId(groupFilter);
 
-    const expenses = await Expense.find(expenseQuery);
+    const expenseAgg = await Expense.aggregate([
+      { $match: expenseMatch },
+      { $unwind: '$splits' },
+      { $match: { 'splits.user': req.user._id } },
+      {
+        $facet: {
+          byCategory: [
+            {
+              $group: {
+                _id: { $ifNull: ['$category', 'Uncategorized'] },
+                total: { $sum: '$splits.amount' }
+              }
+            }
+          ],
+          byMonth: [
+            {
+              $group: {
+                _id: {
+                  year: { $year: '$createdAt' },
+                  month: { $month: '$createdAt' }
+                },
+                total: { $sum: '$splits.amount' }
+              }
+            }
+          ],
+          total: [
+            { $group: { _id: null, total: { $sum: '$splits.amount' } } }
+          ]
+        }
+      }
+    ]);
+
+    const facetResult = expenseAgg[0];
 
     // --- Aggregate income by source ---
     const incomeBySource = {};
@@ -68,18 +101,12 @@ router.get('/', protect, async (req, res) => {
       incomeBySource[key] = (incomeBySource[key] || 0) + inc.amount;
     });
 
-    // --- Aggregate expenses by category (user's share) ---
+    // --- Extract expense aggregation results ---
     const expensesByCategory = {};
-    let totalExpenses = 0;
-    expenses.forEach(expense => {
-      const category = expense.category || 'Uncategorized';
-      const userSplit = expense.splits.find(
-        s => s.user.toString() === req.user._id.toString()
-      );
-      const userAmount = userSplit ? userSplit.amount : 0;
-      expensesByCategory[category] = (expensesByCategory[category] || 0) + userAmount;
-      totalExpenses += userAmount;
+    facetResult.byCategory.forEach(item => {
+      expensesByCategory[item._id] = item.total;
     });
+    const totalExpenses = facetResult.total.length > 0 ? facetResult.total[0].total : 0;
 
     const totalIncome = allIncome.reduce((sum, inc) => sum + inc.amount, 0);
     const netSavings = totalIncome - totalExpenses;
@@ -104,15 +131,11 @@ router.get('/', protect, async (req, res) => {
       }
     });
 
-    // Fill in expenses
-    expenses.forEach(expense => {
-      const d = new Date(expense.createdAt);
-      const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    // Fill in expenses (from aggregation)
+    facetResult.byMonth.forEach(item => {
+      const key = `${item._id.year}-${String(item._id.month).padStart(2, '0')}`;
       if (monthlyMap[key]) {
-        const userSplit = expense.splits.find(
-          s => s.user.toString() === req.user._id.toString()
-        );
-        monthlyMap[key].expenses += userSplit ? userSplit.amount : 0;
+        monthlyMap[key].expenses += item.total;
       }
     });
 

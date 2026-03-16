@@ -65,22 +65,28 @@ router.get('/summary', protect, async (req, res) => {
       endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
     }
 
-    // Get all expenses where the user is in splits, within the date range
-    const expenses = await Expense.find({
-      'splits.user': req.user._id,
-      createdAt: { $gte: startDate, $lte: endDate },
-      category: { $not: /^Settlement/ }
-    });
+    // Use aggregation pipeline for efficient per-category spending
+    const spendingAgg = await Expense.aggregate([
+      {
+        $match: {
+          'splits.user': req.user._id,
+          createdAt: { $gte: startDate, $lte: endDate },
+          category: { $not: /^Settlement/ }
+        }
+      },
+      { $unwind: '$splits' },
+      { $match: { 'splits.user': req.user._id } },
+      {
+        $group: {
+          _id: { $ifNull: ['$category', 'Uncategorized'] },
+          total: { $sum: '$splits.amount' }
+        }
+      }
+    ]);
 
-    // Calculate spending per category (user's share only)
     const spendingByCategory = {};
-    expenses.forEach(expense => {
-      const category = expense.category || 'Uncategorized';
-      const userSplit = expense.splits.find(
-        s => s.user.toString() === req.user._id.toString()
-      );
-      const userAmount = userSplit ? userSplit.amount : 0;
-      spendingByCategory[category] = (spendingByCategory[category] || 0) + userAmount;
+    spendingAgg.forEach(item => {
+      spendingByCategory[item._id] = item.total;
     });
 
     // Build summary: one entry per budget

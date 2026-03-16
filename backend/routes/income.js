@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Income = require('../models/Income');
 const Group = require('../models/Group');
-const { expandRecurringIncome } = require('../utils/helpers');
+const { expandRecurringIncome, parsePagination } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -112,7 +112,16 @@ router.get('/', protect, async (req, res) => {
     }
 
     // No date filter — return raw records (no expansion)
-    const incomes = await Income.find(query).sort({ date: -1 });
+    const { page, limit, skip } = parsePagination(req.query);
+    let incomeQuery = Income.find(query).sort({ date: -1 });
+
+    if (limit > 0) {
+      const total = await Income.countDocuments(query);
+      incomeQuery = incomeQuery.skip(skip).limit(limit);
+      res.set('X-Total-Count', total.toString());
+    }
+
+    const incomes = await incomeQuery;
     res.json(incomes);
   } catch (error) {
     console.error(error);

@@ -3,7 +3,7 @@ const { protect } = require('../middleware/auth');
 const Group = require('../models/Group');
 const User = require('../models/User');
 const PendingGroupInvite = require('../models/PendingGroupInvite');
-const { resolveGroupMembers, storePendingInvites } = require('../utils/helpers');
+const { resolveGroupMembers, storePendingInvites, parsePagination } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -12,17 +12,25 @@ const router = express.Router();
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const groups = await Group.find({ 
-      members: req.user._id 
-    })
-    .populate({
-      path: 'members',
-      select: 'name email',
-      match: { isAdmin: { $ne: true } }
-    })
-    .populate('createdBy', 'name email')
-    .sort({ createdAt: -1 });
+    const filter = { members: req.user._id };
+    const { page, limit, skip } = parsePagination(req.query);
 
+    let query = Group.find(filter)
+      .populate({
+        path: 'members',
+        select: 'name email',
+        match: { isAdmin: { $ne: true } }
+      })
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    if (limit > 0) {
+      const total = await Group.countDocuments(filter);
+      query = query.skip(skip).limit(limit);
+      res.set('X-Total-Count', total.toString());
+    }
+
+    const groups = await query;
     res.json(groups);
   } catch (error) {
     console.error(error);

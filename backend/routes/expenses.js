@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Expense = require('../models/Expense');
 const User = require('../models/User');
-const { validateExpenseUsers, calculateSplits } = require('../utils/helpers');
+const { validateExpenseUsers, calculateSplits, parsePagination } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -76,17 +76,27 @@ router.post('/', [
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const expenses = await Expense.find({
+    const filter = {
       $or: [
         { createdBy: req.user._id },
         { paidBy: req.user._id },
         { 'splits.user': req.user._id }
       ]
-    })
-    .populate('paidBy splits.user createdBy', 'name email')
-    .populate('group', 'name members')
-    .sort({ createdAt: -1 });
+    };
+    const { page, limit, skip } = parsePagination(req.query);
 
+    let query = Expense.find(filter)
+      .populate('paidBy splits.user createdBy', 'name email')
+      .populate('group', 'name members')
+      .sort({ createdAt: -1 });
+
+    if (limit > 0) {
+      const total = await Expense.countDocuments(filter);
+      query = query.skip(skip).limit(limit);
+      res.set('X-Total-Count', total.toString());
+    }
+
+    const expenses = await query;
     res.json(expenses);
   } catch (error) {
     console.error(error);
@@ -99,13 +109,23 @@ router.get('/', protect, async (req, res) => {
 // @access  Private
 router.get('/personal', protect, async (req, res) => {
   try {
-    const expenses = await Expense.find({
+    const filter = {
       createdBy: req.user._id,
       isPersonal: true
-    })
-    .populate('paidBy splits.user createdBy', 'name email')
-    .sort({ createdAt: -1 });
+    };
+    const { page, limit, skip } = parsePagination(req.query);
 
+    let query = Expense.find(filter)
+      .populate('paidBy splits.user createdBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    if (limit > 0) {
+      const total = await Expense.countDocuments(filter);
+      query = query.skip(skip).limit(limit);
+      res.set('X-Total-Count', total.toString());
+    }
+
+    const expenses = await query;
     res.json(expenses);
   } catch (error) {
     console.error(error);
@@ -118,14 +138,114 @@ router.get('/personal', protect, async (req, res) => {
 // @access  Private
 router.get('/tagged', protect, async (req, res) => {
   try {
-    const expenses = await Expense.find({
-      'splits.user': req.user._id
-    })
-    .populate('paidBy splits.user createdBy', 'name email')
-    .populate('group', 'name members')
-    .sort({ createdAt: -1 });
+    const filter = { 'splits.user': req.user._id };
+    const { page, limit, skip } = parsePagination(req.query);
 
+    let query = Expense.find(filter)
+      .populate('paidBy splits.user createdBy', 'name email')
+      .populate('group', 'name members')
+      .sort({ createdAt: -1 });
+
+    if (limit > 0) {
+      const total = await Expense.countDocuments(filter);
+      query = query.skip(skip).limit(limit);
+      res.set('X-Total-Count', total.toString());
+    }
+
+    const expenses = await query;
     res.json(expenses);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/expenses/balance/summary
+// @desc    Get balance summary for current user
+// @access  Private
+router.get('/balance/summary', protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const summary = await Expense.aggregate([
+      {
+        $match: {
+          $or: [
+            { paidBy: userId },
+            { 'splits.user': userId }
+          ]
+        }
+      },
+      { $unwind: '$splits' },
+      {
+        $addFields: {
+          _isPayer: { $eq: ['$paidBy', userId] },
+          _isSplitUser: { $eq: ['$splits.user', userId] }
+        }
+      },
+      {
+        $match: {
+          $or: [
+            { _isPayer: true, _isSplitUser: false },
+            { _isPayer: false, _isSplitUser: true }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          _otherUser: {
+            $cond: { if: '$_isPayer', then: '$splits.user', else: '$paidBy' }
+          },
+          _flowAmount: {
+            $cond: {
+              if: '$_isPayer',
+              then: '$splits.amount',
+              else: { $multiply: ['$splits.amount', -1] }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: '$_otherUser',
+          netAmount: { $sum: '$_flowAmount' }
+        }
+      },
+      {
+        $match: {
+          $expr: { $gt: [{ $abs: '$netAmount' }, 0.01] }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      { $unwind: '$userInfo' },
+      {
+        $project: {
+          _id: 0,
+          user: {
+            _id: '$userInfo._id',
+            name: '$userInfo.name',
+            email: '$userInfo.email'
+          },
+          amount: { $round: [{ $abs: '$netAmount' }, 2] },
+          type: {
+            $cond: {
+              if: { $gt: ['$netAmount', 0] },
+              then: 'owes_you',
+              else: 'you_owe'
+            }
+          }
+        }
+      }
+    ]);
+
+    res.json(summary);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -253,69 +373,6 @@ router.delete('/:id', protect, async (req, res) => {
 
     await expense.deleteOne();
     res.json({ message: 'Expense deleted successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// @route   GET /api/expenses/balance/summary
-// @desc    Get balance summary for current user
-// @access  Private
-router.get('/balance/summary', protect, async (req, res) => {
-  try {
-    const expenses = await Expense.find({
-      $or: [
-        { paidBy: req.user._id },
-        { 'splits.user': req.user._id }
-      ]
-    }).populate('paidBy splits.user', 'name email');
-
-    // Calculate balances
-    const balances = {};
-
-    expenses.forEach(expense => {
-      const isPayer = expense.paidBy._id.equals(req.user._id);
-
-      expense.splits.forEach(split => {
-        const otherUserId = split.user._id.toString();
-        const isOtherUser = split.user._id.equals(req.user._id);
-
-        if (isPayer && !isOtherUser) {
-          // Current user paid, other user owes them
-          if (!balances[otherUserId]) {
-            balances[otherUserId] = {
-              user: split.user,
-              amount: 0
-            };
-          }
-          balances[otherUserId].amount += split.amount;
-        } else if (!isPayer && isOtherUser) {
-          // Other user paid, current user owes them
-          const payerId = expense.paidBy._id.toString();
-          if (!balances[payerId]) {
-            balances[payerId] = {
-              user: expense.paidBy,
-              amount: 0
-            };
-          }
-          balances[payerId].amount -= split.amount;
-        }
-      });
-    });
-
-    // Convert to array and format
-    const summary = Object.values(balances).map(balance => ({
-      user: {
-        _id: balance.user._id,
-        name: balance.user.name,
-        email: balance.user.email
-      },
-      amount: Math.abs(parseFloat(balance.amount.toFixed(2))),
-      type: balance.amount > 0 ? 'owes_you' : 'you_owe'
-    })).filter(b => Math.abs(b.amount) > 0.01);
-
-    res.json(summary);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

@@ -3,6 +3,7 @@ const { protect } = require('../middleware/auth');
 const { admin } = require('../middleware/admin');
 const User = require('../models/User');
 const Expense = require('../models/Expense');
+const { parsePagination } = require('../utils/helpers');
 
 const router = express.Router();
 
@@ -11,10 +12,20 @@ const router = express.Router();
 // @access  Private (Admin only)
 router.get('/users', protect, admin, async (req, res) => {
   try {
-    const users = await User.find()
+    const filter = {};
+    const { page, limit, skip } = parsePagination(req.query);
+
+    let query = User.find(filter)
       .select('-password')
       .sort({ createdAt: -1 });
 
+    if (limit > 0) {
+      const total = await User.countDocuments(filter);
+      query = query.skip(skip).limit(limit);
+      res.set('X-Total-Count', total.toString());
+    }
+
+    const users = await query;
     res.json(users);
   } catch (error) {
     console.error(error);

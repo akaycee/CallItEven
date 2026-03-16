@@ -67,6 +67,13 @@ const expenseSchema = new mongoose.Schema({
   }
 });
 
+// Indexes for query performance
+expenseSchema.index({ createdBy: 1, createdAt: -1 });
+expenseSchema.index({ paidBy: 1 });
+expenseSchema.index({ 'splits.user': 1, createdAt: -1 });
+expenseSchema.index({ category: 1 });
+expenseSchema.index({ isPersonal: 1, createdBy: 1 });
+
 // Validate that splits add up correctly
 expenseSchema.pre('save', function(next) {
   // Skip split validation for personal expenses (single user, full amount)

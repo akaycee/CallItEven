@@ -183,6 +183,19 @@ const expandRecurringIncome = (income, rangeStart, rangeEnd) => {
   return occurrences;
 };
 
+/**
+ * Parse pagination parameters from query string.
+ * When limit > 0, pagination is active. When limit = 0, all results are returned.
+ * @param {Object} query - Express req.query object
+ * @returns {{ page: number, limit: number, skip: number }}
+ */
+const parsePagination = (query) => {
+  const page = Math.max(1, parseInt(query.page) || 1);
+  const limit = Math.max(0, parseInt(query.limit) || 0);
+  const skip = (page - 1) * limit;
+  return { page, limit, skip };
+};
+
 module.exports = {
   escapeRegex,
   calculateSplits,
@@ -190,4 +203,5 @@ module.exports = {
   resolveGroupMembers,
   storePendingInvites,
   expandRecurringIncome,
+  parsePagination,
 };
