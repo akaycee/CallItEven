@@ -95,7 +95,7 @@ describe('EditExpense Page', () => {
     renderEditExpense();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/expenses/expense123');
+      expect(axios.get).toHaveBeenCalledWith('/api/expenses/expense123', expect.any(Object));
     });
   });
 
@@ -103,7 +103,7 @@ describe('EditExpense Page', () => {
     renderEditExpense();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/categories');
+      expect(axios.get).toHaveBeenCalledWith('/api/categories', expect.any(Object));
     });
   });
 

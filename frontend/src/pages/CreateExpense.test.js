@@ -89,7 +89,7 @@ describe('CreateExpense Page', () => {
     renderCreateExpense();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/categories');
+      expect(axios.get).toHaveBeenCalledWith('/api/categories', expect.any(Object));
     });
   });
 
@@ -97,7 +97,7 @@ describe('CreateExpense Page', () => {
     renderCreateExpense();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/groups');
+      expect(axios.get).toHaveBeenCalledWith('/api/groups', expect.any(Object));
     });
   });
 

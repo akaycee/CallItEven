@@ -84,13 +84,10 @@ function ManageIncome({ onDone, isDialog = false }) {
       navigate('/login');
       return;
     }
-    fetchData();
-  }, [user, navigate]);
-
-  useEffect(() => {
-    if (user) fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateFilter, customStart, customEnd]);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [user, dateFilter, customStart, customEnd]);
 
   const getDateRange = useCallback(() => {
     const now = new Date();
@@ -131,7 +128,7 @@ function ManageIncome({ onDone, isDialog = false }) {
     };
   }, [dateFilter, customStart, customEnd]);
 
-  const fetchData = async () => {
+  const fetchData = async (signal) => {
     try {
       setLoading(true);
       setError('');
@@ -140,12 +137,13 @@ function ManageIncome({ onDone, isDialog = false }) {
         ? `?startDate=${range.startDate}&endDate=${range.endDate}`
         : '';
       const [incomeRes, groupsRes] = await Promise.all([
-        axios.get(`/api/income${params}`),
-        axios.get('/api/groups'),
+        axios.get(`/api/income${params}`, { signal }),
+        axios.get('/api/groups', { signal }),
       ]);
       setIncomes(incomeRes.data);
       setGroups(groupsRes.data);
     } catch (error) {
+      if (axios.isCancel(error)) return;
       console.error('Error fetching data:', error);
       setError(error.response?.data?.message || 'Failed to load income data');
     } finally {

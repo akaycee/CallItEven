@@ -118,7 +118,7 @@ describe('CashFlow Page', () => {
     renderCashFlow();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/api/cashflow'));
+      expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/api/cashflow'), expect.any(Object));
     });
   });
 

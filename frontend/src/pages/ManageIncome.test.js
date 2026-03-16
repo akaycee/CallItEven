@@ -100,8 +100,8 @@ describe('ManageIncome Page', () => {
     renderManageIncome();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/api/income'));
-      expect(axios.get).toHaveBeenCalledWith('/api/groups');
+      expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/api/income'), expect.any(Object));
+      expect(axios.get).toHaveBeenCalledWith('/api/groups', expect.any(Object));
     });
   });
 

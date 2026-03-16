@@ -91,7 +91,7 @@ describe('Dashboard Page', () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/expenses');
+      expect(axios.get).toHaveBeenCalledWith('/api/expenses', expect.any(Object));
     });
   });
 
@@ -99,7 +99,7 @@ describe('Dashboard Page', () => {
     renderDashboard();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/expenses/balance/summary');
+      expect(axios.get).toHaveBeenCalledWith('/api/expenses/balance/summary', expect.any(Object));
     });
   });
 

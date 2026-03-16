@@ -65,12 +65,10 @@ function ManageBudgets() {
       navigate('/login');
       return;
     }
-    fetchData();
-  }, [user, navigate]);
-
-  useEffect(() => {
-    if (user) fetchData();
-  }, [budgetDateFilter, customStart, customEnd]);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [user, budgetDateFilter, customStart, customEnd]);
 
   const getDateRange = useCallback(() => {
     const now = new Date();
@@ -111,7 +109,7 @@ function ManageBudgets() {
     };
   }, [budgetDateFilter, customStart, customEnd]);
 
-  const fetchData = async () => {
+  const fetchData = async (signal) => {
     try {
       setLoading(true);
       setError('');
@@ -120,16 +118,17 @@ function ManageBudgets() {
         ? `?startDate=${range.startDate}&endDate=${range.endDate}`
         : '';
       const [budgetsRes, summaryRes, categoriesRes, expensesRes] = await Promise.all([
-        axios.get('/api/budgets'),
-        axios.get(`/api/budgets/summary${summaryParams}`),
-        axios.get('/api/categories'),
-        axios.get('/api/expenses'),
+        axios.get('/api/budgets', { signal }),
+        axios.get(`/api/budgets/summary${summaryParams}`, { signal }),
+        axios.get('/api/categories', { signal }),
+        axios.get('/api/expenses', { signal }),
       ]);
       setBudgets(budgetsRes.data);
       setBudgetSummary(summaryRes.data);
       setCategories(categoriesRes.data);
       setExpenses(expensesRes.data);
     } catch (error) {
+      if (axios.isCancel(error)) return;
       console.error('Error fetching data:', error);
       setError(error.response?.data?.message || 'Failed to load budgets');
     } finally {

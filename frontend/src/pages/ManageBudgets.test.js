@@ -91,9 +91,9 @@ describe('ManageBudgets Page', () => {
     renderManageBudgets();
 
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/budgets');
-      expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/api/budgets/summary'));
-      expect(axios.get).toHaveBeenCalledWith('/api/categories');
+      expect(axios.get).toHaveBeenCalledWith('/api/budgets', expect.any(Object));
+      expect(axios.get).toHaveBeenCalledWith(expect.stringContaining('/api/budgets/summary'), expect.any(Object));
+      expect(axios.get).toHaveBeenCalledWith('/api/categories', expect.any(Object));
     });
   });
 

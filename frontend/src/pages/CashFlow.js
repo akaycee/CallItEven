@@ -43,19 +43,25 @@ function CashFlow() {
       navigate('/login');
       return;
     }
-    fetchGroups();
+    const controller = new AbortController();
+    fetchGroups(controller.signal);
+    return () => controller.abort();
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user) fetchData();
+    if (!user) return;
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFilter, customStart, customEnd, groupFilter]);
 
-  const fetchGroups = async () => {
+  const fetchGroups = async (signal) => {
     try {
-      const res = await axios.get('/api/groups');
+      const res = await axios.get('/api/groups', { signal });
       setGroups(res.data);
     } catch (err) {
+      if (axios.isCancel(err)) return;
       console.error('Error fetching groups:', err);
     }
   };
@@ -95,7 +101,7 @@ function CashFlow() {
     };
   }, [dateFilter, customStart, customEnd]);
 
-  const fetchData = async () => {
+  const fetchData = async (signal) => {
     try {
       setLoading(true);
       setError('');
@@ -105,9 +111,10 @@ function CashFlow() {
       let url = `/api/cashflow?startDate=${range.startDate}&endDate=${range.endDate}`;
       if (groupFilter) url += `&group=${groupFilter}`;
 
-      const res = await axios.get(url);
+      const res = await axios.get(url, { signal });
       setData(res.data);
     } catch (err) {
+      if (axios.isCancel(err)) return;
       console.error('Error fetching cash flow:', err);
       setError(err.response?.data?.message || 'Failed to load cash flow data');
     } finally {
