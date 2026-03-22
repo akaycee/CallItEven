@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -40,6 +40,9 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { useNotification } from '../hooks/useNotification';
+import { formatCurrency } from '../utils/formatCurrency';
+import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 
@@ -50,8 +53,7 @@ function ManageIncome({ onDone, isDialog = false }) {
   const [incomes, setIncomes] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { error, setError, success, setSuccess, showSuccess } = useNotification();
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
@@ -60,7 +62,6 @@ function ManageIncome({ onDone, isDialog = false }) {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [tagFilter, setTagFilter] = useState('');
-  const timeoutRefs = useRef([]);
 
   const emptyForm = {
     source: '',
@@ -77,10 +78,6 @@ function ManageIncome({ onDone, isDialog = false }) {
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
-    return () => timeoutRefs.current.forEach(clearTimeout);
-  }, []);
-
-  useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
@@ -90,50 +87,11 @@ function ManageIncome({ onDone, isDialog = false }) {
     return () => controller.abort();
   }, [user, dateFilter, customStart, customEnd]);
 
-  const getDateRange = useCallback(() => {
-    const now = new Date();
-    let startDate, endDate;
-    switch (dateFilter) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now);
-        break;
-      case 'week':
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - 7);
-        endDate = new Date(now);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now);
-        break;
-      case 'custom':
-        if (customStart && customEnd) {
-          startDate = new Date(customStart);
-          endDate = new Date(customEnd);
-        } else {
-          return null;
-        }
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    }
-    return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-    };
-  }, [dateFilter, customStart, customEnd]);
-
   const fetchData = async (signal) => {
     try {
       setLoading(true);
       setError('');
-      const range = getDateRange();
+      const range = getDateRange(dateFilter, customStart, customEnd);
       const params = range
         ? `?startDate=${range.startDate}&endDate=${range.endDate}`
         : '';
@@ -150,13 +108,6 @@ function ManageIncome({ onDone, isDialog = false }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
   };
 
   const handleAdd = async () => {
@@ -193,11 +144,10 @@ function ManageIncome({ onDone, isDialog = false }) {
       }
 
       await axios.post('/api/income', payload);
-      setSuccess(`Income "${form.source}" added successfully`);
+      showSuccess(`Income "${form.source}" added successfully`);
       setAddDialog(false);
       setForm(emptyForm);
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add income');
     }
@@ -252,12 +202,11 @@ function ManageIncome({ onDone, isDialog = false }) {
       }
 
       await axios.put(`/api/income/${selectedIncome._id}`, payload);
-      setSuccess(`Income "${form.source}" updated successfully`);
+      showSuccess(`Income "${form.source}" updated successfully`);
       setEditDialog(false);
       setSelectedIncome(null);
       setForm(emptyForm);
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update income');
     }
@@ -272,11 +221,10 @@ function ManageIncome({ onDone, isDialog = false }) {
     try {
       setError('');
       await axios.delete(`/api/income/${selectedIncome._id}`);
-      setSuccess(`Income "${selectedIncome.source}" deleted successfully`);
+      showSuccess(`Income "${selectedIncome.source}" deleted successfully`);
       setDeleteDialog(false);
       setSelectedIncome(null);
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete income');
     }

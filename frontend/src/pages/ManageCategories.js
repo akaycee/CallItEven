@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useContext, useRef } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { useNotification } from '../hooks/useNotification';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 
@@ -35,19 +36,13 @@ function ManageCategories() {
   const { user, logout } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { error, setError, success, setSuccess, showSuccess } = useNotification();
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const [addDialog, setAddDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const timeoutRefs = useRef([]);
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => timeoutRefs.current.forEach(clearTimeout);
-  }, []);
-
+  // Auth + fetch on mount
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -83,11 +78,10 @@ function ManageCategories() {
     try {
       setError('');
       await axios.delete(`/api/categories/${encodeURIComponent(categoryToDelete.name)}`);
-      setSuccess(`Category "${categoryToDelete.name}" deleted successfully`);
+      showSuccess(`Category "${categoryToDelete.name}" deleted successfully`);
       setDeleteDialog(false);
       setCategoryToDelete(null);
       fetchCategories();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete category');
       setDeleteDialog(false);
@@ -102,11 +96,10 @@ function ManageCategories() {
         return;
       }
       await axios.post('/api/categories', { name: newCategoryName.trim() });
-      setSuccess(`Category "${newCategoryName}" added successfully`);
+      showSuccess(`Category "${newCategoryName}" added successfully`);
       setAddDialog(false);
       setNewCategoryName('');
       fetchCategories();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add category');
     }

@@ -29,11 +29,7 @@ import {
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
-
-const getInitials = (name) => {
-  if (!name) return '?';
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-};
+import { getInitials } from '../utils/getInitials';
 
 /**
  * Shared navigation bar component.

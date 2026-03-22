@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { useNotification } from '../hooks/useNotification';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 
@@ -41,8 +42,7 @@ function ManageGroups() {
   const [groups, setGroups] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { error, setError, success, setSuccess, showSuccess } = useNotification();
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [addDialog, setAddDialog] = useState(false);
@@ -54,14 +54,10 @@ function ManageGroups() {
   const [inviteDialog, setInviteDialog] = useState(false);
   const [inviteEmails, setInviteEmails] = useState([]);
   const debounceRef = useRef(null);
-  const timeoutRefs = useRef([]);
 
-  // Cleanup timeouts on unmount
+  // Cleanup debounce timer on unmount (timeout cleanup handled by useNotification)
   useEffect(() => {
-    return () => {
-      timeoutRefs.current.forEach(clearTimeout);
-      clearTimeout(debounceRef.current);
-    };
+    return () => { clearTimeout(debounceRef.current); };
   }, []);
 
   useEffect(() => {
@@ -116,11 +112,10 @@ function ManageGroups() {
     try {
       setError('');
       await axios.delete(`/api/groups/${groupToDelete._id}`);
-      setSuccess(`Group "${groupToDelete.name}" deleted successfully`);
+      showSuccess(`Group "${groupToDelete.name}" deleted successfully`);
       setDeleteDialog(false);
       setGroupToDelete(null);
       fetchGroups();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete group');
       setDeleteDialog(false);
@@ -154,12 +149,11 @@ function ManageGroups() {
         setInviteDialog(true);
       }
       
-      setSuccess(`Group "${groupForm.name}" updated successfully`);
+      showSuccess(`Group "${groupForm.name}" updated successfully`);
       setEditDialog(false);
       setGroupToEdit(null);
       setGroupForm({ name: '', memberEmails: [] });
       fetchGroups();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update group');
     }
@@ -183,11 +177,10 @@ function ManageGroups() {
         setInviteDialog(true);
       }
       
-      setSuccess(`Group "${groupForm.name}" added successfully`);
+      showSuccess(`Group "${groupForm.name}" added successfully`);
       setAddDialog(false);
       setGroupForm({ name: '', memberEmails: [] });
       fetchGroups();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to add group');
     }

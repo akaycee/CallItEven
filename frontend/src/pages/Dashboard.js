@@ -69,13 +69,12 @@ import ManageIncome from './ManageIncome';
 import BottomBar from '../components/BottomBar';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
+import { formatCurrency } from '../utils/formatCurrency';
+import { getDateRange } from '../utils/getDateRange';
+import { getInitials } from '../utils/getInitials';
 
 // Register Chart.js components
 Chart.register(ArcElement);
-
-// Instantiated once at module level — Intl.NumberFormat construction is expensive
-const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-const formatCurrency = (amount) => currencyFormatter.format(Math.abs(amount));
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -116,46 +115,11 @@ function Dashboard() {
   const [tagFilter, setTagFilter] = useState('');
   const [budgetSummary, setBudgetSummary] = useState([]);
 
-  const getBudgetDateRange = () => {
-    const now = new Date();
-    let startDate, endDate;
-
-    switch (dateFilter) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        break;
-      case 'week':
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - 7);
-        endDate = new Date(now);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now.getFullYear(), 11, 31);
-        break;
-      case 'custom':
-        startDate = customStartDate ? new Date(customStartDate) : new Date(0);
-        endDate = customEndDate ? new Date(customEndDate) : new Date();
-        break;
-      default:
-        startDate = new Date(0);
-        endDate = new Date();
-    }
-
-    return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-    };
-  };
-
   const fetchBudgetSummary = async (signal) => {
     try {
-      const { startDate, endDate } = getBudgetDateRange();
+      const range = getDateRange(dateFilter, customStartDate, customEndDate);
+      if (!range) return;
+      const { startDate, endDate } = range;
       const { data } = await axios.get(`/api/budgets/summary?startDate=${startDate}&endDate=${endDate}`, { signal });
       setBudgetSummary(data);
     } catch (error) {
@@ -210,16 +174,6 @@ function Dashboard() {
     colorMode.toggleColorMode();
     setProfileMenuAnchor(null);
   }, [colorMode]);
-
-  const getInitials = (name) => {
-    if (!name) return '??';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   const handleEditProfileOpen = useCallback(() => {
     setProfileForm({
@@ -425,44 +379,10 @@ function Dashboard() {
     return labels[type] || type;
   }, []);
 
-  const getDateRange = () => {
-    const now = new Date();
-    let startDate;
-
-    switch (dateFilter) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        break;
-      case 'week':
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      case 'custom':
-        if (customStartDate) {
-          startDate = new Date(customStartDate);
-        } else {
-          startDate = new Date(0); // Beginning of time if no custom date set
-        }
-        break;
-      default:
-        startDate = new Date(0);
-    }
-
-    const endDate = dateFilter === 'custom' && customEndDate
-      ? new Date(customEndDate)
-      : new Date();
-
-    return { startDate, endDate };
-  };
-
   const filteredExpenses = useMemo(() => {
-    const { startDate, endDate } = getDateRange();
+    const _range = getDateRange(dateFilter, customStartDate, customEndDate);
+    const startDate = _range ? new Date(_range.startDate) : new Date(0);
+    const endDate   = _range ? new Date(_range.endDate)   : new Date();
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.createdAt);
       const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;
@@ -484,7 +404,9 @@ function Dashboard() {
   }, [expenses, dateFilter, customStartDate, customEndDate, expenseTypeFilter, tagFilter]);
 
   const filteredActivity = useMemo(() => {
-    const { startDate, endDate } = getDateRange();
+    const _range = getDateRange(dateFilter, customStartDate, customEndDate);
+    const startDate = _range ? new Date(_range.startDate) : new Date(0);
+    const endDate   = _range ? new Date(_range.endDate)   : new Date();
     return expenses.filter(expense => {
       const expenseDate = new Date(expense.createdAt);
       const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;

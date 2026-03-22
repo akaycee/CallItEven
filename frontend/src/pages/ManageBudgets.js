@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -30,6 +30,9 @@ import {
 import { Delete, Add, Edit } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { useNotification } from '../hooks/useNotification';
+import { formatCurrency } from '../utils/formatCurrency';
+import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 
@@ -41,8 +44,7 @@ function ManageBudgets() {
   const [budgetSummary, setBudgetSummary] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { error, setError, success, setSuccess, showSuccess } = useNotification();
   const [addDialog, setAddDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
@@ -55,11 +57,6 @@ function ManageBudgets() {
   const [budgetDateFilter, setBudgetDateFilter] = useState('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
-  const timeoutRefs = useRef([]);
-
-  useEffect(() => {
-    return () => timeoutRefs.current.forEach(clearTimeout);
-  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -71,50 +68,11 @@ function ManageBudgets() {
     return () => controller.abort();
   }, [user, budgetDateFilter, customStart, customEnd]);
 
-  const getDateRange = useCallback(() => {
-    const now = new Date();
-    let startDate, endDate;
-    switch (budgetDateFilter) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now);
-        break;
-      case 'week':
-        startDate = new Date(now);
-        startDate.setDate(now.getDate() - 7);
-        endDate = new Date(now);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now);
-        break;
-      case 'custom':
-        if (customStart && customEnd) {
-          startDate = new Date(customStart);
-          endDate = new Date(customEnd);
-        } else {
-          return null;
-        }
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    }
-    return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-    };
-  }, [budgetDateFilter, customStart, customEnd]);
-
   const fetchData = async (signal) => {
     try {
       setLoading(true);
       setError('');
-      const range = getDateRange();
+      const range = getDateRange(budgetDateFilter, customStart, customEnd);
       const summaryParams = range
         ? `?startDate=${range.startDate}&endDate=${range.endDate}`
         : '';
@@ -137,13 +95,6 @@ function ManageBudgets() {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(Math.abs(amount));
-  };
-
   const handleAddBudget = async () => {
     try {
       setError('');
@@ -159,11 +110,10 @@ function ManageBudgets() {
         category: newBudget.category,
         amount: parseFloat(newBudget.amount),
       });
-      setSuccess(`Budget for "${newBudget.category}" created successfully`);
+      showSuccess(`Budget for "${newBudget.category}" created successfully`);
       setAddDialog(false);
       setNewBudget({ category: '', amount: '' });
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to create budget');
     }
@@ -185,12 +135,11 @@ function ManageBudgets() {
       await axios.put(`/api/budgets/${selectedBudget._id}`, {
         amount: parseFloat(editAmount),
       });
-      setSuccess(`Budget for "${selectedBudget.category}" updated successfully`);
+      showSuccess(`Budget for "${selectedBudget.category}" updated successfully`);
       setEditDialog(false);
       setSelectedBudget(null);
       setEditAmount('');
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update budget');
     }
@@ -205,11 +154,10 @@ function ManageBudgets() {
     try {
       setError('');
       await axios.delete(`/api/budgets/${selectedBudget._id}`);
-      setSuccess(`Budget for "${selectedBudget.category}" deleted successfully`);
+      showSuccess(`Budget for "${selectedBudget.category}" deleted successfully`);
       setDeleteDialog(false);
       setSelectedBudget(null);
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete budget');
     }
@@ -233,7 +181,7 @@ function ManageBudgets() {
   };
 
   const getFilteredExpensesByCategory = (category) => {
-    const range = getDateRange();
+    const range = getDateRange(budgetDateFilter, customStart, customEnd);
     if (!range) return [];
     const startDate = new Date(range.startDate);
     const endDate = new Date(range.endDate);

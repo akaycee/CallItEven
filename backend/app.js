@@ -16,6 +16,10 @@ const cashflowRoutes = require('./routes/cashflow');
 
 const app = express();
 
+// Trust one hop of proxy headers (CRA dev proxy / nginx in production)
+// Required for express-rate-limit to read X-Forwarded-For correctly.
+app.set('trust proxy', 1);
+
 // CORS — restrict to known origins (fall back to open in dev/test)
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',')

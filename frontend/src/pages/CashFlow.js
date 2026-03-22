@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -21,6 +21,8 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { formatCurrency } from '../utils/formatCurrency';
+import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 import CashFlowSankey from '../components/CashFlowSankey';
@@ -67,46 +69,11 @@ function CashFlow() {
     }
   };
 
-  const getDateRange = useCallback(() => {
-    const now = new Date();
-    let startDate, endDate;
-    switch (dateFilter) {
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-      case 'quarter':
-        const quarterStart = Math.floor(now.getMonth() / 3) * 3;
-        startDate = new Date(now.getFullYear(), quarterStart, 1);
-        endDate = new Date(now.getFullYear(), quarterStart + 3, 0);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now.getFullYear(), 11, 31);
-        break;
-      case 'custom':
-        if (customStart && customEnd) {
-          startDate = new Date(customStart);
-          endDate = new Date(customEnd);
-        } else {
-          return null;
-        }
-        break;
-      default:
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now.getFullYear(), 11, 31);
-    }
-    return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-    };
-  }, [dateFilter, customStart, customEnd]);
-
   const fetchData = async (signal) => {
     try {
       setLoading(true);
       setError('');
-      const range = getDateRange();
+      const range = getDateRange(dateFilter, customStart, customEnd);
       if (!range) return;
       
       let url = `/api/cashflow?startDate=${range.startDate}&endDate=${range.endDate}`;
@@ -121,13 +88,6 @@ function CashFlow() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(Math.abs(amount));
   };
 
   return (

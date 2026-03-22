@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -32,6 +32,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { useNotification } from '../hooks/useNotification';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 
@@ -42,20 +43,14 @@ function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({ totalUsers: 0, totalExpenses: 0, totalAmount: 0 });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { error, setError, success, setSuccess, showSuccess } = useNotification();
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [userToEdit, setUserToEdit] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', email: '', isAdmin: false });
-  const timeoutRefs = useRef([]);
 
-  // Cleanup timeouts on unmount
-  useEffect(() => {
-    return () => timeoutRefs.current.forEach(clearTimeout);
-  }, []);
-
+  // Cleanup on unmount handled by useNotification
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -95,11 +90,10 @@ function ManageUsers() {
     try {
       setError('');
       await axios.delete(`/api/admin/users/${userToDelete._id}`);
-      setSuccess(`User "${userToDelete.name}" deleted successfully`);
+      showSuccess(`User "${userToDelete.name}" deleted successfully`);
       setDeleteDialog(false);
       setUserToDelete(null);
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to delete user');
       setDeleteDialog(false);
@@ -124,11 +118,10 @@ function ManageUsers() {
         return;
       }
       await axios.put(`/api/admin/users/${userToEdit._id}`, editForm);
-      setSuccess(`User "${editForm.name}" updated successfully`);
+      showSuccess(`User "${editForm.name}" updated successfully`);
       setEditDialog(false);
       setUserToEdit(null);
       fetchData();
-      timeoutRefs.current.push(setTimeout(() => setSuccess(''), 3000));
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to update user');
     }

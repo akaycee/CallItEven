@@ -12,21 +12,16 @@ import {
   InputAdornment,
   IconButton,
   ThemeProvider,
-  createTheme,
-  useTheme,
 } from '@mui/material';
 import { Visibility, VisibilityOff, Email, Lock, Person } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { useLightTheme } from '../hooks/useLightTheme';
 
 function Register() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
-  const parentTheme = useTheme();
-  const lightTheme = React.useMemo(
-    () => createTheme({ ...parentTheme, palette: { ...parentTheme.palette, mode: 'light' } }),
-    [parentTheme]
-  );
+  const lightTheme = useLightTheme();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
