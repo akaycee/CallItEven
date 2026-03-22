@@ -503,7 +503,7 @@ function ManageBudgets() {
             ...gradientText(GRADIENT_EMERALD_TEAL),
           }}
         >
-          Edit Budget â€” {selectedBudget?.category}
+          Edit Budget •€” {selectedBudget?.category}
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -645,8 +645,8 @@ function ManageBudgets() {
                             <Box>
                               <Typography variant="body2" component="span">
                                 {formatCurrency(expense.totalAmount)}
-                                {!expense.isPersonal && ` â€¢ Your share: ${formatCurrency(getUserShare(expense))}`}
-                                {' â€¢ '}
+                                {!expense.isPersonal && ` • Your share: ${formatCurrency(getUserShare(expense))}`}
+                                {' • '}
                                 {expense.paidBy?._id === user._id ? 'Paid by You' : `Paid by ${expense.paidBy?.name}`}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">

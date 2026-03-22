@@ -1142,7 +1142,7 @@ function Dashboard() {
                         secondary={
                           <Box>
                             <Typography variant="body2" component="span">
-                              {formatCurrency(expense.totalAmount)} â€¢ Paid by{' '}
+                              {formatCurrency(expense.totalAmount)} • Paid by{' '}
                               {expense.paidBy._id === user._id
                                 ? 'You'
                                 : expense.paidBy.name}
@@ -1397,7 +1397,7 @@ function Dashboard() {
                           secondary={
                             <Box>
                               <Typography variant="body2" component="span">
-                                {formatCurrency(expense.totalAmount)} â€¢ Paid by{' '}
+                                {formatCurrency(expense.totalAmount)} • Paid by{' '}
                                 {expense.paidBy._id === user._id
                                   ? 'You'
                                   : expense.paidBy._id === selectedUser._id
@@ -1618,11 +1618,11 @@ function Dashboard() {
                           secondary={
                             <Box>
                               <Typography variant="body2" component="span">
-                                {formatCurrency(expense.totalAmount)} â€¢ Paid by{' '}
+                                {formatCurrency(expense.totalAmount)} • Paid by{' '}
                                 {expense.paidBy._id === user._id
                                   ? 'You'
                                   : expense.paidBy.name}
-                                {' â€¢ Your share: '}{formatCurrency(getUserShare(expense))}
+                                {' • Your share: '}{formatCurrency(getUserShare(expense))}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">
                                 {new Date(expense.createdAt).toLocaleDateString()}
