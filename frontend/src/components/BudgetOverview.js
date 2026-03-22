@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { AccountBalanceWallet } from '@mui/icons-material';
 
-const BudgetOverview = ({ budgetSummary = [], formatCurrency, onCategoryClick }) => {
+const BudgetOverview = React.memo(({ budgetSummary = [], formatCurrency, onCategoryClick }) => {
   const theme = useTheme();
 
   if (budgetSummary.length === 0) {
@@ -125,6 +125,6 @@ const BudgetOverview = ({ budgetSummary = [], formatCurrency, onCategoryClick })
       </CardContent>
     </Card>
   );
-};
+});
 
 export default BudgetOverview;

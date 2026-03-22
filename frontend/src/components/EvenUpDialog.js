@@ -14,7 +14,7 @@ import {
   useTheme,
 } from '@mui/material';
 
-export const EvenUpDialog = ({
+export const EvenUpDialog = React.memo(({
   open,
   onClose,
   evenUpForm,
@@ -121,4 +121,4 @@ export const EvenUpDialog = ({
       </DialogActions>
     </Dialog>
   );
-};
+});

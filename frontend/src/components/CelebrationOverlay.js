@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 
-export const FullCelebration = ({ show }) => {
+export const FullCelebration = React.memo(({ show }) => {
+  const confettiItems = useMemo(
+    () => [...Array(30)].map((_, i) => ({
+      color: ['#f97316', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#fbbf24'][i % 6],
+      left: `${Math.random() * 100}%`,
+      duration: 2 + Math.random() * 2,
+      delay: Math.random() * 2,
+      isCircle: Math.random() > 0.5,
+    })),
+    []
+  );
+
   if (!show) return null;
 
   return (
@@ -33,18 +44,18 @@ export const FullCelebration = ({ show }) => {
       }}
     >
       {/* Confetti */}
-      {[...Array(30)].map((_, i) => (
+      {confettiItems.map((item, i) => (
         <Box
           key={i}
           sx={{
             position: 'absolute',
             width: 10,
             height: 10,
-            background: ['#f97316', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#fbbf24'][i % 6],
-            left: `${Math.random() * 100}%`,
-            animation: `confetti ${2 + Math.random() * 2}s linear infinite`,
-            animationDelay: `${Math.random() * 2}s`,
-            borderRadius: Math.random() > 0.5 ? '50%' : '0',
+            background: item.color,
+            left: item.left,
+            animation: `confetti ${item.duration}s linear infinite`,
+            animationDelay: `${item.delay}s`,
+            borderRadius: item.isCircle ? '50%' : '0',
           }}
         />
       ))}
@@ -95,9 +106,19 @@ export const FullCelebration = ({ show }) => {
       </Box>
     </Box>
   );
-};
+});
 
-export const PartialCelebration = ({ show }) => {
+export const PartialCelebration = React.memo(({ show }) => {
+  const coinItems = useMemo(
+    () => [...Array(15)].map(() => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      duration: 2 + Math.random(),
+      delay: Math.random() * 2,
+    })),
+    []
+  );
+
   if (!show) return null;
 
   return (
@@ -133,16 +154,16 @@ export const PartialCelebration = ({ show }) => {
       }}
     >
       {/* Floating coins */}
-      {[...Array(15)].map((_, i) => (
+      {coinItems.map((item, i) => (
         <Box
           key={i}
           sx={{
             position: 'absolute',
             fontSize: '2rem',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animation: `float ${2 + Math.random()}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 2}s`,
+            left: item.left,
+            top: item.top,
+            animation: `float ${item.duration}s ease-in-out infinite`,
+            animationDelay: `${item.delay}s`,
             opacity: 0.7,
           }}
         >
@@ -197,4 +218,4 @@ export const PartialCelebration = ({ show }) => {
       </Box>
     </Box>
   );
-};
+});

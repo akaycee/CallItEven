@@ -83,7 +83,7 @@ describe('ManageBudgets Page', () => {
     renderManageBudgets();
 
     await waitFor(() => {
-      expect(screen.getByText('Budgets')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Budgets' })).toBeInTheDocument();
     });
   });
 

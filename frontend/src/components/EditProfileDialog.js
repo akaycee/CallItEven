@@ -12,7 +12,7 @@ import {
   useTheme,
 } from '@mui/material';
 
-export const EditProfileDialog = ({
+export const EditProfileDialog = React.memo(({
   open,
   onClose,
   profileForm,
@@ -123,4 +123,4 @@ export const EditProfileDialog = ({
       </DialogActions>
     </Dialog>
   );
-};
+});

@@ -43,7 +43,7 @@ const formatMonthLabel = (monthStr) => {
   return `${MONTH_NAMES[parseInt(month, 10) - 1]} ${year}`;
 };
 
-const CashFlowBarChart = ({ monthly = [] }) => {
+const CashFlowBarChart = React.memo(({ monthly = [] }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
@@ -210,6 +210,6 @@ const CashFlowBarChart = ({ monthly = [] }) => {
       </CardContent>
     </Card>
   );
-};
+});
 
 export default CashFlowBarChart;

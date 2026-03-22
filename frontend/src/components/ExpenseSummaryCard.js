@@ -19,7 +19,7 @@ import {
   TrendingUp,
 } from '@mui/icons-material';
 
-export const ExpenseSummaryCard = ({
+export const ExpenseSummaryCard = React.memo(({
   expenseStats,
   dateFilter,
   onDateFilterChange,
@@ -184,4 +184,4 @@ export const ExpenseSummaryCard = ({
       </CardContent>
     </Card>
   );
-};
+});

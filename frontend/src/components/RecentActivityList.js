@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import { Receipt, AccountBalance } from '@mui/icons-material';
 
-export const RecentActivityList = ({
+export const RecentActivityList = React.memo(({
   filteredActivity,
   activityFilter,
   onActivityFilterChange,
@@ -158,4 +158,4 @@ export const RecentActivityList = ({
       </CardContent>
     </Card>
   );
-};
+});

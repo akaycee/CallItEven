@@ -11,24 +11,25 @@ import {
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 
-export const BalanceSummaryCard = ({ balances, formatCurrency, handleUserClick }) => {
+export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handleUserClick }) => {
   const theme = useTheme();
 
   // Calculate summary from balances array
+  // Single-pass reduce replaces 4 separate .filter() calls
   const summary = useMemo(() => {
-    const owedToYou = balances
-      .filter(b => b.type === 'owes_you')
-      .reduce((sum, b) => sum + b.amount, 0);
-    const youOwe = balances
-      .filter(b => b.type === 'you_owe')
-      .reduce((sum, b) => sum + b.amount, 0);
-
-    return {
-      owedToYou,
-      youOwe,
-      owedToYouDetails: balances.filter(b => b.type === 'owes_you'),
-      youOweDetails: balances.filter(b => b.type === 'you_owe'),
-    };
+    return balances.reduce(
+      (acc, b) => {
+        if (b.type === 'owes_you') {
+          acc.owedToYou += b.amount;
+          acc.owedToYouDetails.push(b);
+        } else {
+          acc.youOwe += b.amount;
+          acc.youOweDetails.push(b);
+        }
+        return acc;
+      },
+      { owedToYou: 0, youOwe: 0, owedToYouDetails: [], youOweDetails: [] }
+    );
   }, [balances]);
 
   if (balances.length === 0) {
@@ -199,4 +200,4 @@ export const BalanceSummaryCard = ({ balances, formatCurrency, handleUserClick }
       </CardContent>
     </Card>
   );
-};
+});

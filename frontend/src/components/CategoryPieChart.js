@@ -11,7 +11,7 @@ import { Chart, ArcElement } from 'chart.js';
 
 Chart.register(ArcElement);
 
-export const CategoryPieChart = ({
+export const CategoryPieChart = React.memo(({
   categoryData,
   chartOptions,
   hoveredCategory,
@@ -111,4 +111,4 @@ export const CategoryPieChart = ({
       </CardContent>
     </Card>
   );
-};
+});

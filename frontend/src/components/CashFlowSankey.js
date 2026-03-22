@@ -23,7 +23,7 @@ const EXPENSE_COLORS = [
   '#f43f5e', '#fb923c',
 ];
 
-const CashFlowSankey = ({ incomeBySource = [], expensesByCategory = [], totalIncome = 0 }) => {
+const CashFlowSankey = React.memo(({ incomeBySource = [], expensesByCategory = [], totalIncome = 0 }) => {
   const theme = useTheme();
 
   if (incomeBySource.length === 0 && expensesByCategory.length === 0) {
@@ -184,6 +184,6 @@ const CashFlowSankey = ({ incomeBySource = [], expensesByCategory = [], totalInc
       </CardContent>
     </Card>
   );
-};
+});
 
 export default CashFlowSankey;

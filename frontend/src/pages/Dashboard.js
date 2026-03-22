@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -72,6 +72,10 @@ import { ColorModeContext } from '../index';
 
 // Register Chart.js components
 Chart.register(ArcElement);
+
+// Instantiated once at module level — Intl.NumberFormat construction is expensive
+const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const formatCurrency = (amount) => currencyFormatter.format(Math.abs(amount));
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -188,24 +192,24 @@ function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setProfileMenuAnchor(null);
     logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
 
-  const handleProfileMenuOpen = (event) => {
+  const handleProfileMenuOpen = useCallback((event) => {
     setProfileMenuAnchor(event.currentTarget);
-  };
+  }, []);
 
-  const handleProfileMenuClose = () => {
+  const handleProfileMenuClose = useCallback(() => {
     setProfileMenuAnchor(null);
-  };
+  }, []);
 
-  const handleThemeToggle = () => {
+  const handleThemeToggle = useCallback(() => {
     colorMode.toggleColorMode();
     setProfileMenuAnchor(null);
-  };
+  }, [colorMode]);
 
   const getInitials = (name) => {
     if (!name) return '??';
@@ -217,7 +221,7 @@ function Dashboard() {
       .slice(0, 2);
   };
 
-  const handleEditProfileOpen = () => {
+  const handleEditProfileOpen = useCallback(() => {
     setProfileForm({
       name: user?.name || '',
       email: user?.email || '',
@@ -228,19 +232,19 @@ function Dashboard() {
     setProfileSuccess('');
     setEditProfileDialog(true);
     setProfileMenuAnchor(null);
-  };
+  }, [user?.name, user?.email]);
 
-  const handleEditProfileClose = () => {
+  const handleEditProfileClose = useCallback(() => {
     setEditProfileDialog(false);
     setProfileForm({ name: '', email: '', password: '', confirmPassword: '' });
     setProfileError('');
     setProfileSuccess('');
-  };
+  }, []);
 
-  const handleProfileFormChange = (e) => {
-    setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
+  const handleProfileFormChange = useCallback((e) => {
+    setProfileForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     setProfileError('');
-  };
+  }, []);
 
   const handleProfileSubmit = async () => {
     try {
@@ -302,7 +306,7 @@ function Dashboard() {
     }
   };
 
-  const handleEvenUpOpen = () => {
+  const handleEvenUpOpen = useCallback(() => {
     if (selectedUser) {
       const balance = balances.find(b => b.user._id === selectedUser._id);
       if (balance) {
@@ -313,15 +317,15 @@ function Dashboard() {
     setEvenUpError('');
     setEvenUpSuccess('');
     setEvenUpDialog(true);
-  };
+  }, [selectedUser, balances]);
 
-  const handleEvenUpClose = () => {
+  const handleEvenUpClose = useCallback(() => {
     setEvenUpDialog(false);
     setEvenUpAmount('');
     setPaymentMethod('Cash');
     setEvenUpError('');
     setEvenUpSuccess('');
-  };
+  }, []);
 
   const handleEvenUpSubmit = async () => {
     try {
@@ -397,10 +401,10 @@ function Dashboard() {
     }
   };
 
-  const handleDeleteExpense = async () => {
+  const handleDeleteExpense = useCallback(async () => {
     try {
       await axios.delete(`/api/expenses/${expenseToDelete}`);
-      setExpenses(expenses.filter((exp) => exp._id !== expenseToDelete));
+      setExpenses(prev => prev.filter((exp) => exp._id !== expenseToDelete));
       setDeleteDialog(false);
       setExpenseToDelete(null);
       fetchData(); // Refresh balances
@@ -408,16 +412,9 @@ function Dashboard() {
     } catch (error) {
       console.error('Error deleting expense:', error);
     }
-  };
+  }, [expenseToDelete]);
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(Math.abs(amount));
-  };
-
-  const getSplitTypeLabel = (expense) => {
+  const getSplitTypeLabel = useCallback((expense) => {
     if (expense?.isPersonal) return 'Personal';
     const type = typeof expense === 'string' ? expense : expense?.splitType;
     const labels = {
@@ -426,7 +423,7 @@ function Dashboard() {
       unequal: 'Custom Split',
     };
     return labels[type] || type;
-  };
+  }, []);
 
   const getDateRange = () => {
     const now = new Date();
@@ -503,8 +500,20 @@ function Dashboard() {
     });
   }, [expenses, dateFilter, customStartDate, customEndDate, activityFilter]);
 
-  const getFilteredExpenses = () => filteredExpenses;
-  const getFilteredActivity = () => filteredActivity;
+  // Stable callbacks for memoized child props
+  const handleDateFilterChange = useCallback((e) => setDateFilter(e.target.value), []);
+  const handleCustomDateChange = useCallback((e) => {
+    if (e.target.name === 'startDate') setCustomStartDate(e.target.value);
+    else setCustomEndDate(e.target.value);
+  }, []);
+  const handleBudgetCategoryClick = useCallback((category) => {
+    setSelectedCategory(category);
+    setCategoryDialog(true);
+  }, []);
+  const customDates = useMemo(
+    () => ({ startDate: customStartDate, endDate: customEndDate }),
+    [customStartDate, customEndDate]
+  );
 
   const getUserShare = (expense) => {
     const userSplit = expense.splits.find(split => split.user._id === user._id);
@@ -537,8 +546,6 @@ function Dashboard() {
       largestExpense,
     };
   }, [filteredExpenses, user._id]);
-
-  const getExpenseStats = () => expenseStats;
 
   const categoryData = useMemo(() => {
     const categoryTotals = {};
@@ -601,44 +608,38 @@ function Dashboard() {
     };
   }, [filteredExpenses, user._id, theme.palette.background.paper, theme.palette.mode]);
 
-  const getCategoryData = () => categoryData;
-
-  const handleCategoryClick = (event, elements) => {
+  const handleCategoryClick = useCallback((event, elements) => {
     if (elements.length > 0) {
       const index = elements[0].index;
       const category = categoryData.labels[index];
       setSelectedCategory(category);
       setCategoryDialog(true);
     }
-  };
+  }, [categoryData]);
 
-  const getExpensesByCategory = () => {
+  const expensesByCategory = useMemo(() => {
     if (!selectedCategory) return [];
-    const filteredExpenses = getFilteredExpenses();
-    return filteredExpenses.filter(expense => 
+    return filteredExpenses.filter(expense =>
       (expense.category || 'Uncategorized') === selectedCategory
     );
-  };
+  }, [selectedCategory, filteredExpenses]);
 
-  const handleUserClick = (balance) => {
+  const handleUserClick = useCallback((balance) => {
     setSelectedUser(balance.user);
     setUserExpensesDialog(true);
-  };
+  }, []);
 
-  const getExpensesWithUser = () => {
+  const expensesWithUser = useMemo(() => {
     if (!selectedUser) return [];
-    
     return expenses.filter(expense => {
-      // Check if the selected user is in the expense
       const isInSplits = expense.splits.some(split => split.user._id === selectedUser._id);
       const isPayer = expense.paidBy._id === selectedUser._id;
-      const isCurrentUserInvolved = 
-        expense.paidBy._id === user._id || 
+      const isCurrentUserInvolved =
+        expense.paidBy._id === user._id ||
         expense.splits.some(split => split.user._id === user._id);
-      
       return (isInSplits || isPayer) && isCurrentUserInvolved;
     });
-  };
+  }, [selectedUser, expenses, user._id]);
 
   const chartOptions = useMemo(() => ({
     responsive: true,
@@ -938,12 +939,9 @@ function Dashboard() {
           <ExpenseSummaryCard
             expenseStats={expenseStats}
             dateFilter={dateFilter}
-            onDateFilterChange={(e) => setDateFilter(e.target.value)}
-            customDates={{ startDate: customStartDate, endDate: customEndDate }}
-            onCustomDateChange={(e) => {
-              if (e.target.name === 'startDate') setCustomStartDate(e.target.value);
-              else setCustomEndDate(e.target.value);
-            }}
+            onDateFilterChange={handleDateFilterChange}
+            customDates={customDates}
+            onCustomDateChange={handleCustomDateChange}
             formatCurrency={formatCurrency}
           />
 
@@ -951,10 +949,7 @@ function Dashboard() {
           <BudgetOverview
             budgetSummary={budgetSummary}
             formatCurrency={formatCurrency}
-            onCategoryClick={(category) => {
-              setSelectedCategory(category);
-              setCategoryDialog(true);
-            }}
+            onCategoryClick={handleBudgetCategoryClick}
           />
           </>
         )}
@@ -987,7 +982,7 @@ function Dashboard() {
                 Click on a category to view expenses in that category
               </Typography>
               
-              {getFilteredExpenses().length === 0 ? (
+              {filteredExpenses.length === 0 ? (
                 <Alert severity="info" sx={{ mt: 2 }}>
                   No expenses found for the selected time period.
                 </Alert>
@@ -1013,7 +1008,7 @@ function Dashboard() {
                   }}
                 >
                   <Pie 
-                    data={getCategoryData()} 
+                    data={categoryData} 
                     options={chartOptions}
                   />
                 </Box>
@@ -1080,7 +1075,7 @@ function Dashboard() {
                             # of Expenses
                           </Typography>
                           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                            {getFilteredExpenses().filter(e => (e.category || 'Uncategorized') === hoveredCategory.name).length}
+                            {filteredExpenses.filter(e => (e.category || 'Uncategorized') === hoveredCategory.name).length}
                           </Typography>
                         </Box>
                       </Box>
@@ -1141,7 +1136,7 @@ function Dashboard() {
             </Box>
             {loading ? (
               <Typography>Loading...</Typography>
-            ) : getFilteredActivity().length === 0 ? (
+            ) : filteredActivity.length === 0 ? (
               <Alert severity="info" sx={{ mt: 2 }}>
                 No {activityFilter === 'expenses' ? 'expenses' : activityFilter === 'settlements' ? 'settlements' : 'activity'} found for the selected time period. {expenses.length > 0 ? 'Try adjusting the date filter.' : 'Click the + button to create your first expense!'}
               </Alert>
@@ -1166,7 +1161,7 @@ function Dashboard() {
                   },
                 }}
               >
-                {getFilteredActivity().map((expense, index) => (
+                {filteredActivity.map((expense, index) => (
                   <React.Fragment key={expense._id}>
                     {index > 0 && <Divider />}
                     <ListItem
@@ -1429,13 +1424,13 @@ function Dashboard() {
               </Typography>
             </DialogTitle>
             <DialogContent dividers>
-              {getExpensesWithUser().length === 0 ? (
+              {expensesWithUser.length === 0 ? (
                 <Alert severity="info">
                   No expenses found with this user.
                 </Alert>
               ) : (
                 <List>
-                  {getExpensesWithUser().map((expense, index) => (
+                  {expensesWithUser.map((expense, index) => (
                     <React.Fragment key={expense._id}>
                       {index > 0 && <Divider />}
                       <ListItem
@@ -1656,13 +1651,13 @@ function Dashboard() {
               </Typography>
             </DialogTitle>
             <DialogContent dividers>
-              {getExpensesByCategory().length === 0 ? (
+              {expensesByCategory.length === 0 ? (
                 <Typography color="text.secondary">
                   No expenses in this category
                 </Typography>
               ) : (
                 <List>
-                  {getExpensesByCategory().map((expense, index) => (
+                  {expensesByCategory.map((expense, index) => (
                     <React.Fragment key={expense._id}>
                       {index > 0 && <Divider />}
                       <ListItem
