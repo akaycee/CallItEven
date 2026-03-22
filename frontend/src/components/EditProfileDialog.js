@@ -11,6 +11,7 @@ import {
   Divider,
   useTheme,
 } from '@mui/material';
+import { GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 
 export const EditProfileDialog = React.memo(({
   open,
@@ -32,9 +33,7 @@ export const EditProfileDialog = React.memo(({
       PaperProps={{
         sx: {
           borderRadius: 3,
-          background: theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-            : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+          background: cardBg.purplePink(theme.palette.mode),
           backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
           backdropFilter: 'blur(20px)',
         },
@@ -42,9 +41,7 @@ export const EditProfileDialog = React.memo(({
     >
       <DialogTitle sx={{ 
         fontWeight: 700,
-        background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
+        ...gradientText(GRADIENT_PURPLE_PINK),
       }}>
         Edit Profile
       </DialogTitle>
@@ -111,10 +108,10 @@ export const EditProfileDialog = React.memo(({
           variant="contained"
           disabled={!profileForm.name || !profileForm.email}
           sx={{
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+            background: GRADIENT_PURPLE_PINK,
             color: 'white',
             '&:hover': {
-              background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+              background: GRADIENT_PURPLE_PINK_HOVER,
             },
           }}
         >

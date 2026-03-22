@@ -9,6 +9,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { AccountBalanceWallet } from '@mui/icons-material';
+import { GRADIENT_EMERALD_TEAL, gradientText } from '../utils/themeConstants';
 
 const BudgetOverview = React.memo(({ budgetSummary = [], formatCurrency, onCategoryClick }) => {
   const theme = useTheme();
@@ -44,9 +45,7 @@ const BudgetOverview = React.memo(({ budgetSummary = [], formatCurrency, onCateg
             variant="h5"
             sx={{
               fontWeight: 800,
-              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              ...gradientText(GRADIENT_EMERALD_TEAL),
             }}
           >
             Budgets

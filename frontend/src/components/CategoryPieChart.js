@@ -8,6 +8,8 @@ import {
 } from '@mui/material';
 import { Pie } from 'react-chartjs-2';
 import { Chart, ArcElement } from 'chart.js';
+import { GRADIENT_ORANGE_TEAL, cardBg, gradientText } from '../utils/themeConstants';
+import { KF_FLOAT_IN } from '../utils/keyframes';
 
 Chart.register(ArcElement);
 
@@ -24,9 +26,7 @@ export const CategoryPieChart = React.memo(({
   return (
     <Card
       sx={{
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-          : 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+        background: cardBg.orangeTeal(theme.palette.mode),
         backdropFilter: 'blur(20px)',
         borderRadius: 3,
         boxShadow: theme.palette.mode === 'dark' 
@@ -48,9 +48,7 @@ export const CategoryPieChart = React.memo(({
           sx={{ 
             mb: 3,
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #f97316 0%, #06b6d4 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_ORANGE_TEAL),
           }}
         >
           Expenses by Category
@@ -78,16 +76,7 @@ export const CategoryPieChart = React.memo(({
                     minWidth: 200,
                     textAlign: 'center',
                     animation: 'floatIn 0.3s ease-out',
-                    '@keyframes floatIn': {
-                      from: {
-                        opacity: 0,
-                        transform: 'translateX(-50%) translateY(10px)',
-                      },
-                      to: {
-                        opacity: 1,
-                        transform: 'translateX(-50%) translateY(0)',
-                      },
-                    },
+                    ...KF_FLOAT_IN,
                   }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>

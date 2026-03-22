@@ -16,6 +16,8 @@ import {
 import { Visibility, VisibilityOff, Email, Lock, Person } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { GRADIENT_CYAN_TRIPLE, GRADIENT_CYAN_TRIPLE_HOVER, gradientText } from '../utils/themeConstants';
+import { KF_MOVE_BACKGROUND } from '../utils/keyframes';
 import { useLightTheme } from '../hooks/useLightTheme';
 
 function Register() {
@@ -78,7 +80,7 @@ function Register() {
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
-        background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+        background: GRADIENT_CYAN_TRIPLE,
         position: 'relative',
         overflow: 'hidden',
         '&::before': {
@@ -92,10 +94,7 @@ function Register() {
           backgroundSize: '50px 50px',
           animation: 'moveBackground 20s linear infinite',
         },
-        '@keyframes moveBackground': {
-          '0%': { transform: 'translate(0, 0)' },
-          '100%': { transform: 'translate(50px, 50px)' },
-        },
+        ...KF_MOVE_BACKGROUND,
       }}
     >
       <Container maxWidth="sm">
@@ -119,9 +118,7 @@ function Register() {
                 component="h1" 
                 gutterBottom 
                 sx={{
-                  background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_CYAN_TRIPLE),
                   fontWeight: 800,
                   fontSize: '2.5rem',
                   letterSpacing: '-0.03em',
@@ -232,11 +229,11 @@ function Register() {
                   mt: 3, 
                   mb: 2, 
                   py: 1.5,
-                  background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+                  background: GRADIENT_CYAN_TRIPLE,
                   fontSize: '1rem',
                   fontWeight: 700,
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #0e7490 0%, #0891b2 50%, #0f766e 100%)',
+                    background: GRADIENT_CYAN_TRIPLE_HOVER,
                   },
                 }}
               >

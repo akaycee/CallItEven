@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -13,6 +13,7 @@ import {
   TextField,
   useTheme,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -25,6 +26,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
+import { cardBg } from '../utils/themeConstants';
 import CashFlowSankey from '../components/CashFlowSankey';
 import CashFlowBarChart from '../components/CashFlowBarChart';
 
@@ -154,7 +156,9 @@ function CashFlow() {
         </Box>
 
         {loading ? (
-          <Typography>Loading...</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress />
+          </Box>
         ) : data ? (
           <>
             {/* Summary Cards */}
@@ -162,9 +166,7 @@ function CashFlow() {
               <Grid item xs={12} sm={4}>
                 <Card
                   sx={{
-                    background: theme.palette.mode === 'dark'
-                      ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-                      : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+                    background: cardBg.emeraldTeal(theme.palette.mode),
                     borderRadius: 3,
                     border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)'}`,
                     transition: 'all 0.3s ease',
@@ -264,3 +266,4 @@ function CashFlow() {
 }
 
 export default CashFlow;
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -67,6 +67,7 @@ import { EditProfileDialog } from '../components/EditProfileDialog';
 import CreateExpense from './CreateExpense';
 import ManageIncome from './ManageIncome';
 import BottomBar from '../components/BottomBar';
+import { GRADIENT_RAINBOW, GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, GRADIENT_ORANGE_RED, GRADIENT_EMERALD_TEAL, GRADIENT_ORANGE_TEAL, GRADIENT_ORANGE_PURPLE, GRADIENT_ORANGE_PURPLE_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -87,6 +88,7 @@ function Dashboard() {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [userExpensesDialog, setUserExpensesDialog] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -360,11 +362,17 @@ function Dashboard() {
       await axios.delete(`/api/expenses/${expenseToDelete}`);
       setExpenses(prev => prev.filter((exp) => exp._id !== expenseToDelete));
       setDeleteDialog(false);
+      setDeleteError('');
       setExpenseToDelete(null);
       fetchData(); // Refresh balances
       fetchBudgetSummary();
     } catch (error) {
       console.error('Error deleting expense:', error);
+      setDeleteError(
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to delete expense. Please try again.'
+      );
     }
   }, [expenseToDelete]);
 
@@ -625,7 +633,7 @@ function Dashboard() {
         position="static" 
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 30%, #f97316 60%, #06b6d4 100%)',
+          background: GRADIENT_RAINBOW,
           backdropFilter: 'blur(20px)',
           borderBottom: '2px solid rgba(255, 255, 255, 0.2)',
           boxShadow: '0 4px 20px rgba(139, 92, 246, 0.3)',
@@ -773,7 +781,7 @@ function Dashboard() {
       >
         <DialogTitle sx={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)',
+          background: GRADIENT_ORANGE_RED,
           color: 'white',
         }}>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>Create New Expense</Typography>
@@ -796,7 +804,7 @@ function Dashboard() {
       >
         <DialogTitle sx={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+          background: GRADIENT_EMERALD_TEAL,
           color: 'white',
         }}>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>Manage Income</Typography>
@@ -833,10 +841,10 @@ function Dashboard() {
                   fontWeight: 600,
                   textTransform: 'none',
                   '&.Mui-selected': {
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                    background: GRADIENT_PURPLE_PINK,
                     color: 'white',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                      background: GRADIENT_PURPLE_PINK_HOVER,
                     },
                   },
                 },
@@ -892,9 +900,7 @@ function Dashboard() {
                 gutterBottom
                 sx={{ 
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #f97316 0%, #06b6d4 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_ORANGE_TEAL),
                   mb: 2,
                 }}
               >
@@ -967,9 +973,7 @@ function Dashboard() {
                         sx={{
                           fontWeight: 800,
                           mb: 2,
-                          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
+                          ...gradientText(GRADIENT_PURPLE_PINK),
                         }}
                       >
                         {hoveredCategory.name}
@@ -1010,7 +1014,7 @@ function Dashboard() {
                         }}
                       >
                         <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-                          💡 Click to view all expenses in this category
+                          ðŸ’¡ Click to view all expenses in this category
                         </Typography>
                       </Box>
                     </CardContent>
@@ -1036,9 +1040,7 @@ function Dashboard() {
                 variant="h5" 
                 sx={{ 
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_ORANGE_PURPLE),
                 }}
               >
                 Recent Activity
@@ -1057,7 +1059,9 @@ function Dashboard() {
               </FormControl>
             </Box>
             {loading ? (
-              <Typography>Loading...</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
             ) : filteredActivity.length === 0 ? (
               <Alert severity="info" sx={{ mt: 2 }}>
                 No {activityFilter === 'expenses' ? 'expenses' : activityFilter === 'settlements' ? 'settlements' : 'activity'} found for the selected time period. {expenses.length > 0 ? 'Try adjusting the date filter.' : 'Click the + button to create your first expense!'}
@@ -1138,7 +1142,7 @@ function Dashboard() {
                         secondary={
                           <Box>
                             <Typography variant="body2" component="span">
-                              {formatCurrency(expense.totalAmount)} • Paid by{' '}
+                              {formatCurrency(expense.totalAmount)} â€¢ Paid by{' '}
                               {expense.paidBy._id === user._id
                                 ? 'You'
                                 : expense.paidBy.name}
@@ -1172,9 +1176,7 @@ function Dashboard() {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%)',
+            background: cardBg.orangePurple(theme.palette.mode),
             backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px)',
           },
@@ -1187,9 +1189,7 @@ function Dashboard() {
                 variant="h6" 
                 fontWeight="bold"
                 sx={{
-                  background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_ORANGE_PURPLE),
                 }}
               >
                 {selectedExpense.description}
@@ -1226,7 +1226,7 @@ function Dashboard() {
                   <Chip 
                     label={selectedExpense.category} 
                     sx={{
-                      background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
+                      background: GRADIENT_ORANGE_PURPLE,
                       color: 'white',
                       fontWeight: 600,
                     }}
@@ -1277,10 +1277,10 @@ function Dashboard() {
                   startIcon={<Edit />}
                   variant="contained"
                   sx={{
-                    background: 'linear-gradient(135deg, #f97316 0%, #8b5cf6 100%)',
+                    background: GRADIENT_ORANGE_PURPLE,
                     color: 'white',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #ea580c 0%, #7c3aed 100%)',
+                      background: GRADIENT_ORANGE_PURPLE_HOVER,
                     },
                   }}
                 >
@@ -1294,13 +1294,16 @@ function Dashboard() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
+      <Dialog open={deleteDialog} onClose={() => { setDeleteDialog(false); setDeleteError(''); }}>
         <DialogTitle>Delete Expense</DialogTitle>
         <DialogContent>
+          {deleteError && (
+            <Alert severity="error" sx={{ mb: 2 }}>{deleteError}</Alert>
+          )}
           <Typography>Are you sure you want to delete this expense?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialog(false)}>Cancel</Button>
+          <Button onClick={() => { setDeleteDialog(false); setDeleteError(''); }}>Cancel</Button>
           <Button onClick={handleDeleteExpense} color="error" variant="contained">
             Delete
           </Button>
@@ -1319,9 +1322,7 @@ function Dashboard() {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            background: cardBg.purplePink(theme.palette.mode),
             backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px)',
           },
@@ -1334,9 +1335,7 @@ function Dashboard() {
                 variant="h6" 
                 fontWeight="bold"
                 sx={{
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_PURPLE_PINK),
                 }}
               >
                 Expenses with {selectedUser.name}
@@ -1381,7 +1380,7 @@ function Dashboard() {
                                   label={expense.category}
                                   size="small"
                                   sx={{
-                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                                    background: GRADIENT_PURPLE_PINK,
                                     color: 'white',
                                     fontWeight: 600,
                                   }}
@@ -1398,7 +1397,7 @@ function Dashboard() {
                           secondary={
                             <Box>
                               <Typography variant="body2" component="span">
-                                {formatCurrency(expense.totalAmount)} • Paid by{' '}
+                                {formatCurrency(expense.totalAmount)} â€¢ Paid by{' '}
                                 {expense.paidBy._id === user._id
                                   ? 'You'
                                   : expense.paidBy._id === selectedUser._id
@@ -1423,10 +1422,10 @@ function Dashboard() {
                   onClick={handleEvenUpOpen}
                   variant="contained"
                   sx={{
-                    background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                    background: GRADIENT_PURPLE_PINK,
                     color: 'white',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                      background: GRADIENT_PURPLE_PINK_HOVER,
                     },
                   }}
                 >
@@ -1455,9 +1454,7 @@ function Dashboard() {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            background: cardBg.purplePink(theme.palette.mode),
             backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px)',
           },
@@ -1465,9 +1462,7 @@ function Dashboard() {
       >
         <DialogTitle sx={{
           fontWeight: 700,
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          ...gradientText(GRADIENT_PURPLE_PINK),
         }}>
           Even Up with {selectedUser?.name}
         </DialogTitle>
@@ -1537,10 +1532,10 @@ function Dashboard() {
             variant="contained"
             disabled={!evenUpAmount || parseFloat(evenUpAmount) <= 0}
             sx={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: GRADIENT_PURPLE_PINK,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                background: GRADIENT_PURPLE_PINK_HOVER,
               },
             }}
           >
@@ -1623,11 +1618,11 @@ function Dashboard() {
                           secondary={
                             <Box>
                               <Typography variant="body2" component="span">
-                                {formatCurrency(expense.totalAmount)} • Paid by{' '}
+                                {formatCurrency(expense.totalAmount)} â€¢ Paid by{' '}
                                 {expense.paidBy._id === user._id
                                   ? 'You'
                                   : expense.paidBy.name}
-                                {' • Your share: '}{formatCurrency(getUserShare(expense))}
+                                {' â€¢ Your share: '}{formatCurrency(getUserShare(expense))}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">
                                 {new Date(expense.createdAt).toLocaleDateString()}
@@ -1659,3 +1654,5 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+

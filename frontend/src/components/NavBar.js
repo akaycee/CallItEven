@@ -30,6 +30,7 @@ import {
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 import { getInitials } from '../utils/getInitials';
+import { GRADIENT_RAINBOW, GRADIENT_PURPLE_PINK } from '../utils/themeConstants';
 
 /**
  * Shared navigation bar component.
@@ -77,8 +78,8 @@ const NavBar = ({
         elevation={0}
         sx={{
           background: showLogo
-            ? 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 30%, #f97316 60%, #06b6d4 100%)'
-            : 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+            ? GRADIENT_RAINBOW
+            : GRADIENT_PURPLE_PINK,
           backdropFilter: 'blur(20px)',
           borderBottom: '2px solid rgba(255, 255, 255, 0.2)',
           boxShadow: showLogo ? '0 4px 20px rgba(139, 92, 246, 0.3)' : undefined,

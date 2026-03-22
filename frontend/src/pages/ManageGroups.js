@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -34,6 +34,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
+import { GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, GRADIENT_TEAL_EMERALD, cardBg, gradientText } from '../utils/themeConstants';
 
 function ManageGroups() {
   const navigate = useNavigate();
@@ -238,7 +239,7 @@ function ManageGroups() {
                 label={`${group.members.length} members`}
                 size="small"
                 sx={{
-                  background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+                  background: GRADIENT_TEAL_EMERALD,
                   color: 'white',
                   fontWeight: 600,
                 }}
@@ -286,9 +287,7 @@ function ManageGroups() {
 
         <Card
           sx={{
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            background: cardBg.purplePink(theme.palette.mode),
             backdropFilter: 'blur(20px)',
             borderRadius: 3,
             boxShadow: theme.palette.mode === 'dark'
@@ -303,9 +302,7 @@ function ManageGroups() {
                 variant="h5"
                 sx={{
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_PURPLE_PINK),
                 }}
               >
                 My Groups
@@ -318,10 +315,10 @@ function ManageGroups() {
                   setAddDialog(true);
                 }}
                 sx={{
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                  background: GRADIENT_PURPLE_PINK,
                   color: 'white',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                    background: GRADIENT_PURPLE_PINK_HOVER,
                   },
                 }}
               >
@@ -396,9 +393,7 @@ function ManageGroups() {
         <DialogTitle
           sx={{
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_PURPLE_PINK),
           }}
         >
           {editDialog ? 'Edit Group' : 'Create New Group'}
@@ -465,10 +460,10 @@ function ManageGroups() {
             variant="contained"
             disabled={!groupForm.name.trim() || groupForm.memberEmails.length < 1}
             sx={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: GRADIENT_PURPLE_PINK,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                background: GRADIENT_PURPLE_PINK_HOVER,
               },
             }}
           >
@@ -486,9 +481,7 @@ function ManageGroups() {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            background: cardBg.purplePink(theme.palette.mode),
             backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px)',
           },
@@ -496,18 +489,16 @@ function ManageGroups() {
       >
         <DialogTitle sx={{
           fontWeight: 700,
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          ...gradientText(GRADIENT_PURPLE_PINK),
         }}>
-          {inviteEmails.length === 1 ? 'User Not Found 🤔' : 'Users Not Found 🤔'}
+          {inviteEmails.length === 1 ? 'User Not Found ðŸ¤”' : 'Users Not Found ðŸ¤”'}
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
             <strong>{inviteEmails.join(', ')}</strong> {inviteEmails.length === 1 ? "hasn't" : "haven't"} joined Call It Even yet!
           </Typography>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Want to add them to your group? Send them this link - they'll be automatically added when they sign up! 🎉
+            Want to add them to your group? Send them this link - they'll be automatically added when they sign up! ðŸŽ‰
           </Typography>
           <TextField
             fullWidth
@@ -526,9 +517,9 @@ function ManageGroups() {
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
           <Button 
             onClick={() => {
-              const subject = encodeURIComponent('Join me on Call It Even! 🎉');
+              const subject = encodeURIComponent('Join me on Call It Even! ðŸŽ‰');
               const body = encodeURIComponent(
-                `Hey!\n\nI've been using Call It Even to track shared expenses, and I'd love to add you to my group!\n\nIt's super easy - just sign up at:\n${window.location.origin}\n\nLooking forward to settling up together! 💰`
+                `Hey!\n\nI've been using Call It Even to track shared expenses, and I'd love to add you to my group!\n\nIt's super easy - just sign up at:\n${window.location.origin}\n\nLooking forward to settling up together! ðŸ’°`
               );
               window.location.href = `mailto:${inviteEmails.join(',')}?subject=${subject}&body=${body}`;
             }}
@@ -548,10 +539,10 @@ function ManageGroups() {
             onClick={() => setInviteDialog(false)}
             variant="contained"
             sx={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: GRADIENT_PURPLE_PINK,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                background: GRADIENT_PURPLE_PINK_HOVER,
               },
             }}
           >
@@ -565,3 +556,4 @@ function ManageGroups() {
 }
 
 export default ManageGroups;
+

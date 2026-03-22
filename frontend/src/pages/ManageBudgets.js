@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -26,6 +26,7 @@ import {
   LinearProgress,
   Chip,
   Divider,
+  CircularProgress,
 } from '@mui/material';
 import { Delete, Add, Edit } from '@mui/icons-material';
 import axios from 'axios';
@@ -35,6 +36,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
+import { GRADIENT_EMERALD_TEAL, GRADIENT_EMERALD_TEAL_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 
 function ManageBudgets() {
   const navigate = useNavigate();
@@ -219,9 +221,7 @@ function ManageBudgets() {
 
         <Card
           sx={{
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+            background: cardBg.emeraldTeal(theme.palette.mode),
             backdropFilter: 'blur(20px)',
             borderRadius: 3,
             boxShadow: theme.palette.mode === 'dark'
@@ -236,9 +236,7 @@ function ManageBudgets() {
                 variant="h5"
                 sx={{
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_EMERALD_TEAL),
                 }}
               >
                 Budgets
@@ -284,10 +282,10 @@ function ManageBudgets() {
                   onClick={() => setAddDialog(true)}
                   disabled={availableCategories.length === 0}
                   sx={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                    background: GRADIENT_EMERALD_TEAL,
                     color: 'white',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)',
+                      background: GRADIENT_EMERALD_TEAL_HOVER,
                     },
                   }}
                 >
@@ -301,7 +299,9 @@ function ManageBudgets() {
             </Typography>
 
             {loading ? (
-              <Typography>Loading...</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
             ) : budgets.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography color="text.secondary">
@@ -422,9 +422,7 @@ function ManageBudgets() {
         <DialogTitle
           sx={{
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_EMERALD_TEAL),
           }}
         >
           Add Monthly Budget
@@ -475,10 +473,10 @@ function ManageBudgets() {
             variant="contained"
             disabled={!newBudget.category || !newBudget.amount}
             sx={{
-              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+              background: GRADIENT_EMERALD_TEAL,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)',
+                background: GRADIENT_EMERALD_TEAL_HOVER,
               },
             }}
           >
@@ -502,12 +500,10 @@ function ManageBudgets() {
         <DialogTitle
           sx={{
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_EMERALD_TEAL),
           }}
         >
-          Edit Budget — {selectedBudget?.category}
+          Edit Budget â€” {selectedBudget?.category}
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -543,10 +539,10 @@ function ManageBudgets() {
             variant="contained"
             disabled={!editAmount || parseFloat(editAmount) <= 0}
             sx={{
-              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+              background: GRADIENT_EMERALD_TEAL,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)',
+                background: GRADIENT_EMERALD_TEAL_HOVER,
               },
             }}
           >
@@ -587,9 +583,7 @@ function ManageBudgets() {
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+            background: cardBg.emeraldTeal(theme.palette.mode),
             backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px)',
           },
@@ -602,9 +596,7 @@ function ManageBudgets() {
                 variant="h6"
                 fontWeight="bold"
                 sx={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_EMERALD_TEAL),
                 }}
               >
                 {selectedCategory}
@@ -653,8 +645,8 @@ function ManageBudgets() {
                             <Box>
                               <Typography variant="body2" component="span">
                                 {formatCurrency(expense.totalAmount)}
-                                {!expense.isPersonal && ` • Your share: ${formatCurrency(getUserShare(expense))}`}
-                                {' • '}
+                                {!expense.isPersonal && ` â€¢ Your share: ${formatCurrency(getUserShare(expense))}`}
+                                {' â€¢ '}
                                 {expense.paidBy?._id === user._id ? 'Paid by You' : `Paid by ${expense.paidBy?.name}`}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">
@@ -691,3 +683,5 @@ function ManageBudgets() {
 }
 
 export default ManageBudgets;
+
+

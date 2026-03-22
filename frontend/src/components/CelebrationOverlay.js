@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
+import { KF_FADE_IN, KF_BOUNCE, KF_CONFETTI, KF_SLIDE_IN, KF_WIGGLE, KF_FLOAT } from '../utils/keyframes';
 
 export const FullCelebration = React.memo(({ show }) => {
   const confettiItems = useMemo(
@@ -29,18 +30,9 @@ export const FullCelebration = React.memo(({ show }) => {
         justifyContent: 'center',
         background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.95) 0%, rgba(236, 72, 153, 0.95) 100%)',
         animation: 'fadeIn 0.3s ease-in',
-        '@keyframes fadeIn': {
-          from: { opacity: 0 },
-          to: { opacity: 1 },
-        },
-        '@keyframes bounce': {
-          '0%, 100%': { transform: 'translateY(0) scale(1)' },
-          '50%': { transform: 'translateY(-20px) scale(1.1)' },
-        },
-        '@keyframes confetti': {
-          '0%': { transform: 'translateY(-100vh) rotate(0deg)', opacity: 1 },
-          '100%': { transform: 'translateY(100vh) rotate(720deg)', opacity: 0 },
-        },
+        ...KF_FADE_IN,
+        ...KF_BOUNCE,
+        ...KF_CONFETTI,
       }}
     >
       {/* Confetti */}
@@ -135,22 +127,10 @@ export const PartialCelebration = React.memo(({ show }) => {
         justifyContent: 'center',
         background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.95) 0%, rgba(6, 182, 212, 0.95) 100%)',
         animation: 'fadeIn 0.3s ease-in',
-        '@keyframes fadeIn': {
-          from: { opacity: 0 },
-          to: { opacity: 1 },
-        },
-        '@keyframes slideIn': {
-          from: { transform: 'translateX(-100vw) rotate(-20deg)' },
-          to: { transform: 'translateX(0) rotate(0deg)' },
-        },
-        '@keyframes wiggle': {
-          '0%, 100%': { transform: 'rotate(-5deg)' },
-          '50%': { transform: 'rotate(5deg)' },
-        },
-        '@keyframes float': {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
+        ...KF_FADE_IN,
+        ...KF_SLIDE_IN,
+        ...KF_WIGGLE,
+        ...KF_FLOAT,
       }}
     >
       {/* Floating coins */}

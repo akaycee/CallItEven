@@ -19,6 +19,7 @@ import {
   Chip,
   useTheme,
   IconButton,
+  CircularProgress,
 } from '@mui/material';
 import { 
   Delete, 
@@ -29,6 +30,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
+import { GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, GRADIENT_TEAL_EMERALD, cardBg, gradientText } from '../utils/themeConstants';
 
 function ManageCategories() {
   const navigate = useNavigate();
@@ -123,9 +125,7 @@ function ManageCategories() {
 
         <Card
           sx={{
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            background: cardBg.purplePink(theme.palette.mode),
             backdropFilter: 'blur(20px)',
             borderRadius: 3,
             boxShadow: theme.palette.mode === 'dark' 
@@ -140,9 +140,7 @@ function ManageCategories() {
                 variant="h5" 
                 sx={{ 
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_PURPLE_PINK),
                 }}
               >
                 All Categories
@@ -152,10 +150,10 @@ function ManageCategories() {
                 startIcon={<Add />}
                 onClick={() => setAddDialog(true)}
                 sx={{
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                  background: GRADIENT_PURPLE_PINK,
                   color: 'white',
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                    background: GRADIENT_PURPLE_PINK_HOVER,
                   },
                 }}
               >
@@ -164,7 +162,9 @@ function ManageCategories() {
             </Box>
 
             {loading ? (
-              <Typography>Loading...</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
             ) : categories.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography color="text.secondary">
@@ -217,7 +217,7 @@ function ManageCategories() {
                               label="Default" 
                               size="small" 
                               sx={{
-                                background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+                                background: GRADIENT_TEAL_EMERALD,
                                 color: 'white',
                                 fontWeight: 600,
                               }}
@@ -293,9 +293,7 @@ function ManageCategories() {
       >
         <DialogTitle sx={{ 
           fontWeight: 700,
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          ...gradientText(GRADIENT_PURPLE_PINK),
         }}>
           Add New Category
         </DialogTitle>
@@ -327,10 +325,10 @@ function ManageCategories() {
             variant="contained"
             disabled={!newCategoryName.trim()}
             sx={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: GRADIENT_PURPLE_PINK,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                background: GRADIENT_PURPLE_PINK_HOVER,
               },
             }}
           >
@@ -344,3 +342,4 @@ function ManageCategories() {
 }
 
 export default ManageCategories;
+

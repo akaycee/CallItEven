@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -25,6 +25,7 @@ import {
   FormControlLabel,
   useTheme,
   Paper,
+  CircularProgress,
 } from '@mui/material';
 import { 
   Delete, 
@@ -35,6 +36,7 @@ import { AuthContext } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
+import { GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 
 function ManageUsers() {
   const navigate = useNavigate();
@@ -147,9 +149,7 @@ function ManageUsers() {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 2, mb: 4 }}>
           <Card
             sx={{
-              background: theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-                : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+              background: cardBg.purplePink(theme.palette.mode),
               backdropFilter: 'blur(20px)',
               borderRadius: 3,
             }}
@@ -165,9 +165,7 @@ function ManageUsers() {
           </Card>
           <Card
             sx={{
-              background: theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
-                : 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
+              background: cardBg.tealEmerald(theme.palette.mode),
               backdropFilter: 'blur(20px)',
               borderRadius: 3,
             }}
@@ -204,9 +202,7 @@ function ManageUsers() {
         {/* Users Table */}
         <Card
           sx={{
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+            background: cardBg.purplePink(theme.palette.mode),
             backdropFilter: 'blur(20px)',
             borderRadius: 3,
             boxShadow: theme.palette.mode === 'dark' 
@@ -221,16 +217,16 @@ function ManageUsers() {
               sx={{ 
                 mb: 3,
                 fontWeight: 800,
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                ...gradientText(GRADIENT_PURPLE_PINK),
               }}
             >
               All Users
             </Typography>
 
             {loading ? (
-              <Typography>Loading...</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
             ) : users.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography color="text.secondary">
@@ -272,7 +268,7 @@ function ManageUsers() {
                               label="Admin" 
                               size="small" 
                               sx={{
-                                background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                                background: GRADIENT_PURPLE_PINK,
                                 color: 'white',
                                 fontWeight: 600,
                               }}
@@ -379,9 +375,7 @@ function ManageUsers() {
       >
         <DialogTitle sx={{ 
           fontWeight: 700,
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          ...gradientText(GRADIENT_PURPLE_PINK),
         }}>
           Edit User
         </DialogTitle>
@@ -426,10 +420,10 @@ function ManageUsers() {
             onClick={handleEditSubmit}
             variant="contained"
             sx={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: GRADIENT_PURPLE_PINK,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                background: GRADIENT_PURPLE_PINK_HOVER,
               },
             }}
           >
@@ -443,3 +437,4 @@ function ManageUsers() {
 }
 
 export default ManageUsers;
+

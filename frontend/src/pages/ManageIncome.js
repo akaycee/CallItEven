@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+﻿import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -28,6 +28,7 @@ import {
   Switch,
   FormControlLabel,
   Grid,
+  CircularProgress,
 } from '@mui/material';
 import {
   Delete,
@@ -45,6 +46,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
+import { GRADIENT_EMERALD_TEAL, GRADIENT_EMERALD_TEAL_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 
 function ManageIncome({ onDone, isDialog = false }) {
   const navigate = useNavigate();
@@ -385,10 +387,10 @@ function ManageIncome({ onDone, isDialog = false }) {
               }
             }}
             sx={{
-              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+              background: GRADIENT_EMERALD_TEAL,
               color: 'white',
               fontWeight: 700,
-              '&:hover': { background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)' },
+              '&:hover': { background: GRADIENT_EMERALD_TEAL_HOVER },
             }}
           >
             Add Income
@@ -419,9 +421,7 @@ function ManageIncome({ onDone, isDialog = false }) {
           <Grid item xs={12} sm={4}>
             <Card
               sx={{
-                background: theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-                  : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+                background: cardBg.emeraldTeal(theme.palette.mode),
                 borderRadius: 3,
                 border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)'}`,
               }}
@@ -438,9 +438,7 @@ function ManageIncome({ onDone, isDialog = false }) {
           <Grid item xs={12} sm={4}>
             <Card
               sx={{
-                background: theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-                  : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+                background: cardBg.purplePink(theme.palette.mode),
                 borderRadius: 3,
                 border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(139, 92, 246, 0.3)' : 'rgba(139, 92, 246, 0.2)'}`,
               }}
@@ -457,9 +455,7 @@ function ManageIncome({ onDone, isDialog = false }) {
           <Grid item xs={12} sm={4}>
             <Card
               sx={{
-                background: theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-                  : 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+                background: cardBg.orangeTeal(theme.palette.mode),
                 borderRadius: 3,
                 border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(249, 115, 22, 0.2)'}`,
               }}
@@ -480,9 +476,7 @@ function ManageIncome({ onDone, isDialog = false }) {
         {/* Main List Card */}
         <Card
           sx={{
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+            background: cardBg.emeraldTeal(theme.palette.mode),
             backdropFilter: 'blur(20px)',
             borderRadius: 3,
             boxShadow: theme.palette.mode === 'dark'
@@ -497,9 +491,7 @@ function ManageIncome({ onDone, isDialog = false }) {
                 variant="h5"
                 sx={{
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  ...gradientText(GRADIENT_EMERALD_TEAL),
                 }}
               >
                 Income Sources
@@ -544,10 +536,10 @@ function ManageIncome({ onDone, isDialog = false }) {
                   startIcon={<Add />}
                   onClick={() => { setForm(emptyForm); setAddDialog(true); }}
                   sx={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+                    background: GRADIENT_EMERALD_TEAL,
                     color: 'white',
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)',
+                      background: GRADIENT_EMERALD_TEAL_HOVER,
                     },
                   }}
                 >
@@ -567,7 +559,9 @@ function ManageIncome({ onDone, isDialog = false }) {
             </Box>
 
             {loading ? (
-              <Typography>Loading...</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
             ) : incomes.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography color="text.secondary">
@@ -620,8 +614,8 @@ function ManageIncome({ onDone, isDialog = false }) {
                         secondary={
                           <Box sx={{ mt: 0.5 }}>
                             <Typography variant="body2" color="text.secondary">
-                              {new Date(income.date).toLocaleDateString()} · {income.category}
-                              {income.description && ` · ${income.description}`}
+                              {new Date(income.date).toLocaleDateString()} Â· {income.category}
+                              {income.description && ` Â· ${income.description}`}
                             </Typography>
                           </Box>
                         }
@@ -676,8 +670,8 @@ function ManageIncome({ onDone, isDialog = false }) {
             onClick={handleAdd}
             variant="contained"
             sx={{
-              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-              '&:hover': { background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)' },
+              background: GRADIENT_EMERALD_TEAL,
+              '&:hover': { background: GRADIENT_EMERALD_TEAL_HOVER },
             }}
           >
             Add
@@ -698,8 +692,8 @@ function ManageIncome({ onDone, isDialog = false }) {
             onClick={handleEditConfirm}
             variant="contained"
             sx={{
-              background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-              '&:hover': { background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)' },
+              background: GRADIENT_EMERALD_TEAL,
+              '&:hover': { background: GRADIENT_EMERALD_TEAL_HOVER },
             }}
           >
             Save
@@ -729,3 +723,4 @@ function ManageIncome({ onDone, isDialog = false }) {
 }
 
 export default ManageIncome;
+

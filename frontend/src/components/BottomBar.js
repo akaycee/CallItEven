@@ -9,6 +9,7 @@ import {
   DialogActions,
   Button,
   TextField,
+  Alert,
   useTheme,
 } from '@mui/material';
 import {
@@ -24,6 +25,9 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import { GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, cardBg, gradientText } from '../utils/themeConstants';
+import { KF_DOCK_BOUNCE, KF_HINT_PULSE } from '../utils/keyframes';
+import { KF_BOUNCE } from '../utils/keyframes';
 
 /**
  * Persistent bottom tab bar shown on all authenticated pages.
@@ -44,12 +48,16 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
   const [userNotes, setUserNotes] = useState('');
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesSuccess, setNotesSuccess] = useState('');
+  const [notesError, setNotesError] = useState('');
 
   const handleOpenNotes = () => {
     setNotesSuccess('');
+    setNotesError('');
     axios.get('/api/users/profile').then(res => {
       setUserNotes(res.data.notes || '');
-    }).catch(() => {});
+    }).catch(() => {
+      setNotesError('Could not load your notes. You can still type new ones.');
+    });
     setNotesDialog(true);
   };
 
@@ -82,11 +90,7 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
             : 'rgba(0, 0, 0, 0.06)',
           boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.08)',
           animation: showDockHint ? 'dockBounce 0.6s ease-out' : 'none',
-          '@keyframes dockBounce': {
-            '0%': { transform: 'translateY(100%)' },
-            '60%': { transform: 'translateY(-8px)' },
-            '100%': { transform: 'translateY(0)' },
-          },
+          ...KF_DOCK_BOUNCE,
         }}
       >
         {/* First-visit hint */}
@@ -101,7 +105,7 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
               top: -44,
               left: '50%',
               transform: 'translateX(-50%)',
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: GRADIENT_PURPLE_PINK,
               color: 'white',
               px: 2,
               py: 0.75,
@@ -112,10 +116,7 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
               whiteSpace: 'nowrap',
               boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
               animation: 'hintPulse 2s ease-in-out infinite',
-              '@keyframes hintPulse': {
-                '0%, 100%': { opacity: 1 },
-                '50%': { opacity: 0.7 },
-              },
+              ...KF_HINT_PULSE,
               '&::after': {
                 content: '""',
                 position: 'absolute',
@@ -230,15 +231,13 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
       {/* Notes Dialog */}
       <Dialog
         open={notesDialog}
-        onClose={() => setNotesDialog(false)}
+        onClose={() => { setNotesDialog(false); setNotesError(''); }}
         maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
             borderRadius: 3,
-            background: theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+          background: cardBg.purplePink(theme.palette.mode),
             backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px)',
           },
@@ -246,13 +245,14 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
       >
         <DialogTitle sx={{
           fontWeight: 700,
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          ...gradientText(GRADIENT_PURPLE_PINK),
         }}>
           My Notes
         </DialogTitle>
         <DialogContent>
+          {notesError && (
+            <Alert severity="warning" sx={{ mb: 1, mt: 1 }}>{notesError}</Alert>
+          )}
           <Typography variant="caption" color="text.secondary" sx={{ mb: 2, mt: 1, display: 'block' }}>
             Keep track of reminders — e.g., which card expenses have been added through
           </Typography>
@@ -272,7 +272,7 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setNotesDialog(false)} sx={{ color: 'text.secondary' }}>
+          <Button onClick={() => { setNotesDialog(false); setNotesError(''); }} sx={{ color: 'text.secondary' }}>
             Close
           </Button>
           <Button
@@ -291,10 +291,10 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
               }
             }}
             sx={{
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+              background: GRADIENT_PURPLE_PINK,
               color: 'white',
               '&:hover': {
-                background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                background: GRADIENT_PURPLE_PINK_HOVER,
               },
             }}
           >

@@ -15,6 +15,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { Receipt, AccountBalance } from '@mui/icons-material';
+import { GRADIENT_PURPLE_TEAL, cardBg, gradientText } from '../utils/themeConstants';
 
 export const RecentActivityList = React.memo(({
   filteredActivity,
@@ -38,9 +39,7 @@ export const RecentActivityList = React.memo(({
   return (
     <Card
       sx={{
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-          : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+        background: cardBg.purpleTeal(theme.palette.mode),
         backdropFilter: 'blur(20px)',
         borderRadius: 3,
         boxShadow: theme.palette.mode === 'dark' 
@@ -62,9 +61,7 @@ export const RecentActivityList = React.memo(({
             variant="h6" 
             sx={{ 
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              ...gradientText(GRADIENT_PURPLE_TEAL),
             }}
           >
             Recent Activity

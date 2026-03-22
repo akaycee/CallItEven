@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+﻿import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
@@ -20,6 +20,7 @@ import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
 import ExpenseForm from '../components/ExpenseForm';
 import BottomBar from '../components/BottomBar';
+import { GRADIENT_CYAN_TRIPLE } from '../utils/themeConstants';
 
 function EditExpense() {
   const navigate = useNavigate();
@@ -230,7 +231,7 @@ function EditExpense() {
         position="static"
         elevation={0}
         sx={{
-          background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 50%, #14b8a6 100%)',
+          background: GRADIENT_CYAN_TRIPLE,
           backdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         }}
@@ -298,3 +299,4 @@ function EditExpense() {
 }
 
 export default EditExpense;
+

@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import axios from 'axios';
+import { GRADIENT_TEAL_EMERALD, gradientText } from '../utils/themeConstants';
 
 /**
  * Shared form for creating and editing expenses.
@@ -508,9 +509,7 @@ function ExpenseForm({
         <DialogTitle
           sx={{
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_TEAL_EMERALD),
           }}
         >
           User Not Found 🤔

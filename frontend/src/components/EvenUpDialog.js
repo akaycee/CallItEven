@@ -13,6 +13,7 @@ import {
   Alert,
   useTheme,
 } from '@mui/material';
+import { GRADIENT_EMERALD_TEAL, GRADIENT_EMERALD_TEAL_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 
 export const EvenUpDialog = React.memo(({
   open,
@@ -34,9 +35,7 @@ export const EvenUpDialog = React.memo(({
       PaperProps={{
         sx: {
           borderRadius: 3,
-          background: theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-            : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+          background: cardBg.emeraldTeal(theme.palette.mode),
           backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 30, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
           backdropFilter: 'blur(20px)',
         },
@@ -44,9 +43,7 @@ export const EvenUpDialog = React.memo(({
     >
       <DialogTitle sx={{ 
         fontWeight: 700,
-        background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
+        ...gradientText(GRADIENT_EMERALD_TEAL),
       }}>
         Even Up
       </DialogTitle>
@@ -109,10 +106,10 @@ export const EvenUpDialog = React.memo(({
           variant="contained"
           disabled={!evenUpForm.amount || !evenUpForm.paymentMethod}
           sx={{
-            background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)',
+            background: GRADIENT_EMERALD_TEAL,
             color: 'white',
             '&:hover': {
-              background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)',
+              background: GRADIENT_EMERALD_TEAL_HOVER,
             },
           }}
         >

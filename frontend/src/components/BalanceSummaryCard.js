@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import { GRADIENT_TEAL_EMERALD, cardBg, gradientText } from '../utils/themeConstants';
 
 export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handleUserClick }) => {
   const theme = useTheme();
@@ -36,9 +37,7 @@ export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handle
     return (
       <Card
         sx={{
-          background: theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
-            : 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
+          background: cardBg.tealEmerald(theme.palette.mode),
           backdropFilter: 'blur(20px)',
           borderRadius: 3,
           boxShadow: theme.palette.mode === 'dark' 
@@ -54,9 +53,7 @@ export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handle
             sx={{ 
               mb: 2,
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              ...gradientText(GRADIENT_TEAL_EMERALD),
             }}
           >
             Balance Summary
@@ -72,9 +69,7 @@ export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handle
   return (
     <Card
       sx={{
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%)'
-          : 'linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)',
+        background: cardBg.tealEmerald(theme.palette.mode),
         backdropFilter: 'blur(20px)',
         borderRadius: 3,
         boxShadow: theme.palette.mode === 'dark' 
@@ -97,9 +92,7 @@ export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handle
           sx={{ 
             mb: 3,
             fontWeight: 800,
-            background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_TEAL_EMERALD),
           }}
         >
           Balance Summary

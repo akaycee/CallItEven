@@ -19,6 +19,7 @@ import {
   LineController,
   BarController,
 } from 'chart.js';
+import { GRADIENT_PURPLE_TEAL, cardBg, gradientText } from '../utils/themeConstants';
 
 Chart.register(
   BarElement,
@@ -180,9 +181,7 @@ const CashFlowBarChart = React.memo(({ monthly = [] }) => {
   return (
     <Card
       sx={{
-        background: isDark
-          ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)'
-          : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%)',
+        background: cardBg.purpleTeal(theme.palette.mode),
         backdropFilter: 'blur(20px)',
         borderRadius: 3,
         boxShadow: isDark
@@ -197,9 +196,7 @@ const CashFlowBarChart = React.memo(({ monthly = [] }) => {
           sx={{
             mb: 3,
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_PURPLE_TEAL),
           }}
         >
           Income vs Expenses Over Time

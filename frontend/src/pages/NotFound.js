@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { GRADIENT_PURPLE_PINK, gradientText } from '../utils/themeConstants';
 
 const NotFound = () => {
   const navigate = useNavigate();
@@ -19,9 +20,7 @@ const NotFound = () => {
         sx={{
           fontWeight: 900,
           fontSize: { xs: '6rem', md: '8rem' },
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          ...gradientText(GRADIENT_PURPLE_PINK),
         }}
       >
         404
@@ -33,7 +32,7 @@ const NotFound = () => {
         variant="contained"
         onClick={() => navigate('/dashboard')}
         sx={{
-          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+          background: GRADIENT_PURPLE_PINK,
           color: 'white',
           px: 4,
           py: 1.5,

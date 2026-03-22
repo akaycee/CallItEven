@@ -9,6 +9,7 @@ import {
 import { Chart } from 'chart.js';
 import { SankeyController, Flow } from 'chartjs-chart-sankey';
 import { Chart as ChartJS } from 'react-chartjs-2';
+import { GRADIENT_EMERALD_ORANGE, cardBg, gradientText } from '../utils/themeConstants';
 
 Chart.register(SankeyController, Flow);
 
@@ -30,9 +31,7 @@ const CashFlowSankey = React.memo(({ incomeBySource = [], expensesByCategory = [
     return (
       <Card
         sx={{
-          background: theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%)'
-            : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%)',
+          background: cardBg.emeraldOrange(theme.palette.mode),
           borderRadius: 3,
           border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)'}`,
         }}
@@ -140,9 +139,7 @@ const CashFlowSankey = React.memo(({ incomeBySource = [], expensesByCategory = [
   return (
     <Card
       sx={{
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%)'
-          : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(249, 115, 22, 0.15) 100%)',
+        background: cardBg.emeraldOrange(theme.palette.mode),
         backdropFilter: 'blur(20px)',
         borderRadius: 3,
         boxShadow: theme.palette.mode === 'dark'
@@ -157,9 +154,7 @@ const CashFlowSankey = React.memo(({ incomeBySource = [], expensesByCategory = [
           sx={{
             mb: 3,
             fontWeight: 700,
-            background: 'linear-gradient(135deg, #10b981 0%, #f97316 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            ...gradientText(GRADIENT_EMERALD_ORANGE),
           }}
         >
           Cash Flow Diagram

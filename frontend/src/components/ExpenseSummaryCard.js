@@ -18,6 +18,7 @@ import {
   Category as CategoryIcon,
   TrendingUp,
 } from '@mui/icons-material';
+import { GRADIENT_PURPLE_PINK, cardBg, gradientText } from '../utils/themeConstants';
 
 export const ExpenseSummaryCard = React.memo(({
   expenseStats,
@@ -66,9 +67,7 @@ export const ExpenseSummaryCard = React.memo(({
     <Card
       sx={{
         mb: 4,
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(236, 72, 153, 0.2) 100%)'
-          : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+        background: cardBg.purplePink(theme.palette.mode),
         backdropFilter: 'blur(20px)',
         borderRadius: 3,
         boxShadow: theme.palette.mode === 'dark' 
@@ -90,9 +89,7 @@ export const ExpenseSummaryCard = React.memo(({
             variant="h6" 
             sx={{ 
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              ...gradientText(GRADIENT_PURPLE_PINK),
             }}
           >
             Expense Summary
