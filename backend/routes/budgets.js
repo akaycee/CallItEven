@@ -7,6 +7,8 @@ const Expense = require('../models/Expense');
 const Category = require('../models/Category');
 const { parseDateRange } = require('../utils/helpers');
 const { DEFAULT_CATEGORIES } = require('../utils/constants');
+const User = require('../models/User');
+const FamilyGroup = require('../models/FamilyGroup');
 
 const router = express.Router();
 
@@ -23,7 +25,17 @@ async function getAllCategoryNames() {
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const budgets = await Budget.find({ user: req.user._id }).sort({ category: 1 }).lean();
+    let filter;
+    if (req.query.household === 'true') {
+      const currentUser = await User.findById(req.user._id).select('familyGroup').lean();
+      if (!currentUser?.familyGroup) {
+        return res.status(400).json({ message: 'You are not in a family group' });
+      }
+      filter = { user: req.user._id, isFamilyBudget: true };
+    } else {
+      filter = { user: req.user._id, isFamilyBudget: { $ne: true } };
+    }
+    const budgets = await Budget.find(filter).sort({ category: 1 }).lean();
     res.json(budgets);
   } catch (error) {
     logger.error({ err: error }, error.message);
@@ -36,27 +48,45 @@ router.get('/', protect, async (req, res) => {
 // @access  Private
 router.get('/summary', protect, async (req, res) => {
   try {
-    // Get all budgets for this user
-    const budgets = await Budget.find({ user: req.user._id }).lean();
+    const isHousehold = req.query.household === 'true';
+    let budgetFilter;
+    let splitUserMatch;
+
+    if (isHousehold) {
+      const currentUser = await User.findById(req.user._id).select('familyGroup').lean();
+      if (!currentUser?.familyGroup) {
+        return res.status(400).json({ message: 'You are not in a family group' });
+      }
+      const family = await FamilyGroup.findById(currentUser.familyGroup).lean();
+      if (!family) {
+        return res.status(400).json({ message: 'Family group not found' });
+      }
+      budgetFilter = { user: req.user._id, isFamilyBudget: true };
+      splitUserMatch = { $in: family.members };
+    } else {
+      budgetFilter = { user: req.user._id, isFamilyBudget: { $ne: true } };
+      splitUserMatch = req.user._id;
+    }
+
+    const budgets = await Budget.find(budgetFilter).lean();
 
     if (budgets.length === 0) {
       return res.json([]);
     }
 
-    // Determine date range from query params or default to current month
     const { startDate, endDate } = parseDateRange(req.query);
 
-    // Use aggregation pipeline for efficient per-category spending
     const spendingAgg = await Expense.aggregate([
       {
         $match: {
-          'splits.user': req.user._id,
-          createdAt: { $gte: startDate, $lte: endDate },
-          category: { $not: /^Settlement/ }
+          'splits.user': splitUserMatch,
+          date: { $gte: startDate, $lte: endDate },
+          category: { $not: /^Settlement/ },
+          ...(isHousehold ? { hideFromFamily: { $ne: true } } : {})
         }
       },
       { $unwind: '$splits' },
-      { $match: { 'splits.user': req.user._id } },
+      { $match: { 'splits.user': splitUserMatch } },
       {
         $group: {
           _id: { $ifNull: ['$category', 'Uncategorized'] },
@@ -99,7 +129,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { category, amount } = req.body;
+    const { category, amount, isFamilyBudget, familyGroup } = req.body;
 
     // Validate category exists
     const validCategories = await getAllCategoryNames();
@@ -108,7 +138,7 @@ router.post('/', [
     }
 
     // Check for duplicate budget
-    const existing = await Budget.findOne({ user: req.user._id, category });
+    const existing = await Budget.findOne({ user: req.user._id, category, isFamilyBudget: !!isFamilyBudget });
     if (existing) {
       return res.status(400).json({ message: 'Budget already exists for this category' });
     }
@@ -116,7 +146,9 @@ router.post('/', [
     const budget = await Budget.create({
       user: req.user._id,
       category,
-      amount
+      amount,
+      isFamilyBudget: !!isFamilyBudget,
+      familyGroup: isFamilyBudget ? familyGroup : undefined
     });
 
     res.status(201).json(budget);

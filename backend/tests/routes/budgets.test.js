@@ -328,6 +328,7 @@ describe('Budget Routes', () => {
         createdBy: user1._id,
         category: 'Food & Dining',
         isPersonal: true,
+        date: new Date('2024-01-15'),
         createdAt: new Date('2024-01-15'),
       });
 

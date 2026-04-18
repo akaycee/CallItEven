@@ -67,6 +67,7 @@ import { EditProfileDialog } from '../components/EditProfileDialog';
 import CreateExpense from './CreateExpense';
 import ManageIncome from './ManageIncome';
 import BottomBar from '../components/BottomBar';
+import HouseholdToggle from '../components/HouseholdToggle';
 import { GRADIENT_RAINBOW, GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, GRADIENT_ORANGE_RED, GRADIENT_EMERALD_TEAL, GRADIENT_ORANGE_TEAL, GRADIENT_ORANGE_PURPLE, GRADIENT_ORANGE_PURPLE_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
@@ -82,6 +83,7 @@ function Dashboard() {
   const theme = useTheme();
   const colorMode = useContext(ColorModeContext);
   const { user, logout } = useContext(AuthContext);
+  const [viewMode, setViewMode] = useState('personal');
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,8 @@ function Dashboard() {
       const range = getDateRange(dateFilter, customStartDate, customEndDate);
       if (!range) return;
       const { startDate, endDate } = range;
-      const { data } = await axios.get(`/api/budgets/summary?startDate=${startDate}&endDate=${endDate}`, { signal });
+      const householdParam = viewMode === 'household' ? '&household=true' : '';
+      const { data } = await axios.get(`/api/budgets/summary?startDate=${startDate}&endDate=${endDate}${householdParam}`, { signal });
       setBudgetSummary(data);
     } catch (error) {
       if (axios.isCancel(error)) return;
@@ -134,19 +137,20 @@ function Dashboard() {
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [viewMode]);
 
   useEffect(() => {
     const controller = new AbortController();
     fetchBudgetSummary(controller.signal);
     return () => controller.abort();
-  }, [dateFilter, customStartDate, customEndDate]);
+  }, [dateFilter, customStartDate, customEndDate, viewMode]);
 
   const fetchData = async (signal) => {
     try {
+      const householdParam = viewMode === 'household' ? '?household=true' : '';
       const [expensesRes, balancesRes] = await Promise.all([
-        axios.get('/api/expenses', { signal }),
-        axios.get('/api/expenses/balance/summary', { signal }),
+        axios.get(`/api/expenses${householdParam}`, { signal }),
+        axios.get(`/api/expenses/balance/summary${householdParam}`, { signal }),
       ]);
       setExpenses(expensesRes.data);
       setBalances(balancesRes.data);
@@ -392,7 +396,7 @@ function Dashboard() {
     const startDate = _range ? new Date(_range.startDate) : new Date(0);
     const endDate   = _range ? new Date(_range.endDate)   : new Date();
     return expenses.filter(expense => {
-      const expenseDate = new Date(expense.createdAt);
+      const expenseDate = new Date(expense.date || expense.createdAt);
       const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;
       const isNotSettlement = !expense.category?.startsWith('Settlement');
       
@@ -416,7 +420,7 @@ function Dashboard() {
     const startDate = _range ? new Date(_range.startDate) : new Date(0);
     const endDate   = _range ? new Date(_range.endDate)   : new Date();
     return expenses.filter(expense => {
-      const expenseDate = new Date(expense.createdAt);
+      const expenseDate = new Date(expense.date || expense.createdAt);
       const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;
       const isSettlement = expense.category?.startsWith('Settlement');
       
@@ -818,6 +822,12 @@ function Dashboard() {
       </Dialog>
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 12, pb: 4 }}>
+        {/* Household Toggle */}
+        <HouseholdToggle
+          value={viewMode}
+          onChange={(e, val) => { if (val) setViewMode(val); }}
+        />
+
         {/* Balance Summary */}
         <BalanceSummaryCard 
           balances={balances}
@@ -1014,7 +1024,7 @@ function Dashboard() {
                         }}
                       >
                         <Typography variant="caption" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-                          ðŸ’¡ Click to view all expenses in this category
+                          💡 Click to view all expenses in this category
                         </Typography>
                       </Box>
                     </CardContent>
@@ -1148,7 +1158,7 @@ function Dashboard() {
                                 : expense.paidBy.name}
                             </Typography>
                             <Typography variant="caption" display="block" color="text.secondary">
-                              {new Date(expense.createdAt).toLocaleDateString()}
+                              {new Date(expense.date || expense.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                             </Typography>
                           </Box>
                         }
@@ -1195,7 +1205,7 @@ function Dashboard() {
                 {selectedExpense.description}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {new Date(selectedExpense.createdAt).toLocaleString()}
+                {new Date(selectedExpense.date || selectedExpense.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
               </Typography>
             </DialogTitle>
             <DialogContent dividers>
@@ -1405,7 +1415,7 @@ function Dashboard() {
                                   : expense.paidBy.name}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">
-                                {new Date(expense.createdAt).toLocaleDateString()}
+                                {new Date(expense.date || expense.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                               </Typography>
                             </Box>
                           }
@@ -1622,10 +1632,10 @@ function Dashboard() {
                                 {expense.paidBy._id === user._id
                                   ? 'You'
                                   : expense.paidBy.name}
-                                {' • Your share: '}{formatCurrency(getUserShare(expense))}
+                                {' \u2022 Your share: '}{formatCurrency(getUserShare(expense))}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">
-                                {new Date(expense.createdAt).toLocaleDateString()}
+                                {new Date(expense.date || expense.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                               </Typography>
                             </Box>
                           }

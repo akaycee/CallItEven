@@ -40,6 +40,7 @@ describe('Cash Flow Routes', () => {
         createdBy: user._id,
         category: 'Groceries',
         isPersonal: true,
+        date: new Date('2026-03-10'),
         createdAt: new Date('2026-03-10'),
       });
 
@@ -104,6 +105,7 @@ describe('Cash Flow Routes', () => {
         ],
         createdBy: user._id,
         category: 'Food & Dining',
+        date: new Date('2026-03-10'),
         createdAt: new Date('2026-03-10'),
       });
 
@@ -125,6 +127,7 @@ describe('Cash Flow Routes', () => {
         createdBy: user._id,
         category: 'Settlement - Venmo',
         isPersonal: true,
+        date: new Date('2026-03-10'),
         createdAt: new Date('2026-03-10'),
       });
 

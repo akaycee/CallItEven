@@ -22,6 +22,8 @@ import {
   StickyNote2,
   LocalOffer,
   Person,
+  Savings,
+  FamilyRestroom,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
@@ -211,7 +213,10 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
         }}>
           {[
             ...(!user?.isAdmin ? [{ icon: <ShowChart sx={{ fontSize: 20 }} />, label: 'Flow', onClick: () => navigate('/cash-flow') }] : []),
+            ...(!user?.isAdmin ? [{ icon: <AccountBalanceWallet sx={{ fontSize: 20 }} />, label: 'Invest', onClick: () => navigate('/manage-investments') }] : []),
+            ...(!user?.isAdmin ? [{ icon: <Savings sx={{ fontSize: 20 }} />, label: 'Save', onClick: () => navigate('/manage-savings') }] : []),
             { icon: <People sx={{ fontSize: 20 }} />, label: 'Groups', onClick: () => navigate('/manage-groups') },
+            ...(!user?.isAdmin ? [{ icon: <FamilyRestroom sx={{ fontSize: 20 }} />, label: 'Family', onClick: () => navigate('/manage-family') }] : []),
             { icon: <StickyNote2 sx={{ fontSize: 20 }} />, label: 'Notes', onClick: handleOpenNotes },
           ].map((item) => (
             <Box key={item.label} onClick={item.onClick} sx={{

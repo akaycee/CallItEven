@@ -15,6 +15,9 @@ const ManageGroups = lazy(() => import('./pages/ManageGroups'));
 const ManageBudgets = lazy(() => import('./pages/ManageBudgets'));
 const ManageIncome = lazy(() => import('./pages/ManageIncome'));
 const CashFlow = lazy(() => import('./pages/CashFlow'));
+const ManageFamily = lazy(() => import('./pages/ManageFamily'));
+const ManageInvestments = lazy(() => import('./pages/ManageInvestments'));
+const ManageSavings = lazy(() => import('./pages/ManageSavings'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PrivateRoute = ({ children }) => {
@@ -46,6 +49,9 @@ function App() {
           <Route path="/manage-budgets" element={<PrivateRoute><ManageBudgets /></PrivateRoute>} />
           <Route path="/manage-income" element={<PrivateRoute><ManageIncome /></PrivateRoute>} />
           <Route path="/cash-flow" element={<PrivateRoute><CashFlow /></PrivateRoute>} />
+          <Route path="/manage-family" element={<PrivateRoute><ManageFamily /></PrivateRoute>} />
+          <Route path="/manage-investments" element={<PrivateRoute><ManageInvestments /></PrivateRoute>} />
+          <Route path="/manage-savings" element={<PrivateRoute><ManageSavings /></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/manage-categories" />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

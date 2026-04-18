@@ -37,6 +37,7 @@ import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 import { GRADIENT_EMERALD_TEAL, GRADIENT_EMERALD_TEAL_HOVER, cardBg, gradientText } from '../utils/themeConstants';
+import HouseholdToggle from '../components/HouseholdToggle';
 
 function ManageBudgets() {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ function ManageBudgets() {
   const [budgetDateFilter, setBudgetDateFilter] = useState('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [viewMode, setViewMode] = useState('personal');
 
   useEffect(() => {
     if (!user) {
@@ -68,7 +70,7 @@ function ManageBudgets() {
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
-  }, [user, budgetDateFilter, customStart, customEnd]);
+  }, [user, budgetDateFilter, customStart, customEnd, viewMode]);
 
   const fetchData = async (signal) => {
     try {
@@ -78,9 +80,10 @@ function ManageBudgets() {
       const summaryParams = range
         ? `?startDate=${range.startDate}&endDate=${range.endDate}`
         : '';
+      const householdParam = viewMode === 'household' ? (summaryParams ? '&household=true' : '?household=true') : '';
       const [budgetsRes, summaryRes, categoriesRes, expensesRes] = await Promise.all([
-        axios.get('/api/budgets', { signal }),
-        axios.get(`/api/budgets/summary${summaryParams}`, { signal }),
+        axios.get(`/api/budgets${householdParam ? '?household=true' : ''}`, { signal }),
+        axios.get(`/api/budgets/summary${summaryParams}${householdParam}`, { signal }),
         axios.get('/api/categories', { signal }),
         axios.get('/api/expenses', { signal }),
       ]);
@@ -208,6 +211,12 @@ function ManageBudgets() {
       <NavBar title="Manage Budgets" showBack backPath="/dashboard" />
 
       <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
+        {/* Household Toggle */}
+        <HouseholdToggle
+          value={viewMode}
+          onChange={(e, val) => { if (val) setViewMode(val); }}
+        />
+
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}

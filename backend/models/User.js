@@ -32,6 +32,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
     maxlength: 5000
+  },
+  familyGroup: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FamilyGroup',
+    default: null
   }
 }, {
   timestamps: true

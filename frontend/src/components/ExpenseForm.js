@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import {
   Box,
   TextField,
@@ -22,10 +22,12 @@ import {
   DialogContent,
   DialogActions,
   useTheme,
+  Tooltip,
 } from '@mui/material';
-import { Delete } from '@mui/icons-material';
+import { Delete, VisibilityOff } from '@mui/icons-material';
 import axios from 'axios';
 import { GRADIENT_TEAL_EMERALD, gradientText } from '../utils/themeConstants';
+import { AuthContext } from '../context/AuthContext';
 
 /**
  * Shared form for creating and editing expenses.
@@ -66,8 +68,11 @@ function ExpenseForm({
   categoryError,
   setCategoryError,
   currentUser,
+  hideFromFamily,
+  setHideFromFamily,
 }) {
   const theme = useTheme();
+  const { familyGroup } = useContext(AuthContext);
   const searchTimerRef = useRef(null);
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -76,7 +81,8 @@ function ExpenseForm({
 
   // ── form field change ──────────────────────────────────────────────────────
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   // ── category validation (only fires on explicit selection / blur) ──────────
@@ -216,6 +222,17 @@ function ExpenseForm({
           placeholder="Optional tag for filtering (e.g., vacation, project-x)"
         />
 
+        <TextField
+          fullWidth
+          label="Date"
+          name="date"
+          type="date"
+          value={formData.date || ''}
+          onChange={handleChange}
+          margin="normal"
+          InputLabelProps={{ shrink: true }}
+        />
+
         <FormControlLabel
           control={
             <Switch
@@ -233,6 +250,27 @@ function ExpenseForm({
           label="Personal Expense (not split with anyone)"
           sx={{ mt: 2, mb: 1 }}
         />
+
+        {familyGroup && setHideFromFamily && (
+          <Tooltip title="When enabled, this expense won't appear in household views" arrow>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={!!hideFromFamily}
+                  onChange={(e) => setHideFromFamily(e.target.checked)}
+                  color="warning"
+                />
+              }
+              label={
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <VisibilityOff sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">Hide from Family</Typography>
+                </Box>
+              }
+              sx={{ mb: 1 }}
+            />
+          </Tooltip>
+        )}
 
         {!isPersonal && (
           <>

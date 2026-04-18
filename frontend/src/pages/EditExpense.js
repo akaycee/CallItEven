@@ -35,6 +35,7 @@ function EditExpense() {
     splitType: 'equal',
     category: '',
     tag: '',
+    date: '',
   });
   const [participants, setParticipants] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -72,6 +73,7 @@ function EditExpense() {
         splitType: data.splitType,
         category: data.category || '',
         tag: data.tag || '',
+        date: data.date ? new Date(data.date).toISOString().split('T')[0] : (data.createdAt ? new Date(data.createdAt).toISOString().split('T')[0] : ''),
       });
 
       setIsPersonal(!!data.isPersonal);

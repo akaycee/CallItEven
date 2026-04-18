@@ -60,6 +60,14 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: ''
+  },
+  hideFromFamily: {
+    type: Boolean,
+    default: false
+  },
+  date: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
@@ -67,6 +75,7 @@ const expenseSchema = new mongoose.Schema({
 
 // Indexes for query performance
 expenseSchema.index({ createdBy: 1, createdAt: -1 });
+expenseSchema.index({ createdBy: 1, date: -1 });
 expenseSchema.index({ paidBy: 1 });
 expenseSchema.index({ 'splits.user': 1, createdAt: -1 });
 expenseSchema.index({ category: 1 });

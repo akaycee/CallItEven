@@ -32,6 +32,7 @@ function CreateExpense({ onDone, isDialog = false }) {
     splitType: 'equal',
     category: '',
     tag: '',
+    date: new Date().toISOString().split('T')[0],
   });
   const [participants, setParticipants] = useState([{ user: user, amount: '', percentage: '' }]);
   const [categories, setCategories] = useState([]);

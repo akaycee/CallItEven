@@ -47,6 +47,7 @@ import { getDateRange } from '../utils/getDateRange';
 import NavBar from '../components/NavBar';
 import BottomBar from '../components/BottomBar';
 import { GRADIENT_EMERALD_TEAL, GRADIENT_EMERALD_TEAL_HOVER, cardBg, gradientText } from '../utils/themeConstants';
+import HouseholdToggle from '../components/HouseholdToggle';
 
 function ManageIncome({ onDone, isDialog = false }) {
   const navigate = useNavigate();
@@ -64,6 +65,7 @@ function ManageIncome({ onDone, isDialog = false }) {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [tagFilter, setTagFilter] = useState('');
+  const [viewMode, setViewMode] = useState('personal');
 
   const emptyForm = {
     source: '',
@@ -87,7 +89,7 @@ function ManageIncome({ onDone, isDialog = false }) {
     const controller = new AbortController();
     fetchData(controller.signal);
     return () => controller.abort();
-  }, [user, dateFilter, customStart, customEnd]);
+  }, [user, dateFilter, customStart, customEnd, viewMode]);
 
   const fetchData = async (signal) => {
     try {
@@ -97,8 +99,9 @@ function ManageIncome({ onDone, isDialog = false }) {
       const params = range
         ? `?startDate=${range.startDate}&endDate=${range.endDate}`
         : '';
+      const householdParam = viewMode === 'household' ? (params ? '&household=true' : '?household=true') : '';
       const [incomeRes, groupsRes] = await Promise.all([
-        axios.get(`/api/income${params}`, { signal }),
+        axios.get(`/api/income${params}${householdParam}`, { signal }),
         axios.get('/api/groups', { signal }),
       ]);
       setIncomes(incomeRes.data);
@@ -405,6 +408,14 @@ function ManageIncome({ onDone, isDialog = false }) {
       <NavBar title="Manage Income" showBack backPath="/dashboard" />
 
       <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
+        {/* Household Toggle */}
+        {!isDialog && (
+          <HouseholdToggle
+            value={viewMode}
+            onChange={(e, val) => { if (val) setViewMode(val); }}
+          />
+        )}
+
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
@@ -614,8 +625,8 @@ function ManageIncome({ onDone, isDialog = false }) {
                         secondary={
                           <Box sx={{ mt: 0.5 }}>
                             <Typography variant="body2" color="text.secondary">
-                              {new Date(income.date).toLocaleDateString()} Â· {income.category}
-                              {income.description && ` Â· ${income.description}`}
+                              {new Date(income.date).toLocaleDateString()} &middot; {income.category}
+                              {income.description && ` \u00B7 ${income.description}`}
                             </Typography>
                           </Box>
                         }

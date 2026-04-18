@@ -29,6 +29,7 @@ import BottomBar from '../components/BottomBar';
 import { cardBg } from '../utils/themeConstants';
 import CashFlowSankey from '../components/CashFlowSankey';
 import CashFlowBarChart from '../components/CashFlowBarChart';
+import HouseholdToggle from '../components/HouseholdToggle';
 
 function CashFlow() {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ function CashFlow() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
+  const [viewMode, setViewMode] = useState('personal');
 
   useEffect(() => {
     if (!user) {
@@ -59,7 +61,7 @@ function CashFlow() {
     fetchData(controller.signal);
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateFilter, customStart, customEnd, groupFilter]);
+  }, [dateFilter, customStart, customEnd, groupFilter, viewMode]);
 
   const fetchGroups = async (signal) => {
     try {
@@ -80,6 +82,7 @@ function CashFlow() {
       
       let url = `/api/cashflow?startDate=${range.startDate}&endDate=${range.endDate}`;
       if (groupFilter) url += `&group=${groupFilter}`;
+      if (viewMode === 'household') url += '&household=true';
 
       const res = await axios.get(url, { signal });
       setData(res.data);
@@ -97,6 +100,11 @@ function CashFlow() {
       <NavBar title="Cash Flow" showBack backPath="/dashboard" />
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 10 }}>
+        {/* Household Toggle */}
+        <HouseholdToggle
+          value={viewMode}
+          onChange={(e, val) => { if (val) setViewMode(val); }}
+        />
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}

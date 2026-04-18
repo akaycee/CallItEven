@@ -4,7 +4,19 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Expense = require('../models/Expense');
 const User = require('../models/User');
+const FamilyGroup = require('../models/FamilyGroup');
 const { validateExpenseUsers, calculateSplits, parsePagination, resolveExpenseSplits } = require('../utils/helpers');
+
+/**
+ * Get family member IDs for the current user.
+ * Returns null if user has no family group.
+ */
+async function getFamilyMemberIds(userId) {
+  const user = await User.findById(userId).select('familyGroup').lean();
+  if (!user?.familyGroup) return null;
+  const family = await FamilyGroup.findById(user.familyGroup).lean();
+  return family ? family.members : null;
+}
 
 const router = express.Router();
 
@@ -26,7 +38,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { description, totalAmount, paidBy, splitType, splits, category, isPersonal, tag } = req.body;
+    const { description, totalAmount, paidBy, splitType, splits, category, isPersonal, tag, hideFromFamily, date } = req.body;
 
     const { splits: calculatedSplits, error: splitError } = await resolveExpenseSplits({
       isPersonal, userId: req.user._id, totalAmount, paidBy, splitType, splits, User,
@@ -45,7 +57,9 @@ router.post('/', [
       createdBy: req.user._id,
       category: category || 'Uncategorized',
       isPersonal: !!isPersonal,
-      tag: tag || ''
+      tag: tag || '',
+      hideFromFamily: !!hideFromFamily,
+      date: date ? new Date(date) : new Date()
     });
 
     // Populate user data
@@ -64,19 +78,32 @@ router.post('/', [
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const filter = {
-      $or: [
-        { createdBy: req.user._id },
-        { paidBy: req.user._id },
-        { 'splits.user': req.user._id }
-      ]
-    };
+    let filter;
+
+    if (req.query.household === 'true') {
+      const familyMemberIds = await getFamilyMemberIds(req.user._id);
+      if (!familyMemberIds) {
+        return res.status(400).json({ message: 'You are not in a family group' });
+      }
+      filter = {
+        'splits.user': { $in: familyMemberIds },
+        hideFromFamily: { $ne: true }
+      };
+    } else {
+      filter = {
+        $or: [
+          { createdBy: req.user._id },
+          { paidBy: req.user._id },
+          { 'splits.user': req.user._id }
+        ]
+      };
+    }
     const { page, limit, skip } = parsePagination(req.query);
 
     let query = Expense.find(filter)
       .populate('paidBy splits.user createdBy', 'name email')
       .populate('group', 'name members')
-      .sort({ createdAt: -1 })
+      .sort({ date: -1, createdAt: -1 })
       .lean();
 
     if (limit > 0) {
@@ -106,7 +133,7 @@ router.get('/personal', protect, async (req, res) => {
 
     let query = Expense.find(filter)
       .populate('paidBy splits.user createdBy', 'name email')
-      .sort({ createdAt: -1 })
+      .sort({ date: -1, createdAt: -1 })
       .lean();
 
     if (limit > 0) {
@@ -134,7 +161,7 @@ router.get('/tagged', protect, async (req, res) => {
     let query = Expense.find(filter)
       .populate('paidBy splits.user createdBy', 'name email')
       .populate('group', 'name members')
-      .sort({ createdAt: -1 })
+      .sort({ date: -1, createdAt: -1 })
       .lean();
 
     if (limit > 0) {
@@ -158,14 +185,31 @@ router.get('/balance/summary', protect, async (req, res) => {
   try {
     const userId = req.user._id;
 
+    let matchStage;
+    if (req.query.household === 'true') {
+      const familyMemberIds = await getFamilyMemberIds(userId);
+      if (!familyMemberIds) {
+        return res.status(400).json({ message: 'You are not in a family group' });
+      }
+      matchStage = {
+        $or: [
+          { paidBy: { $in: familyMemberIds } },
+          { 'splits.user': { $in: familyMemberIds } }
+        ],
+        hideFromFamily: { $ne: true }
+      };
+    } else {
+      matchStage = {
+        $or: [
+          { paidBy: userId },
+          { 'splits.user': userId }
+        ]
+      };
+    }
+
     const summary = await Expense.aggregate([
       {
-        $match: {
-          $or: [
-            { paidBy: userId },
-            { 'splits.user': userId }
-          ]
-        }
+        $match: matchStage
       },
       { $unwind: '$splits' },
       {
@@ -303,7 +347,7 @@ router.put('/:id', [
       return res.status(403).json({ message: 'Not authorized to update this expense' });
     }
 
-    const { description, totalAmount, paidBy, splitType, splits, category, isPersonal, tag } = req.body;
+    const { description, totalAmount, paidBy, splitType, splits, category, isPersonal, tag, hideFromFamily, date } = req.body;
 
     const { splits: calculatedSplits, error: splitError } = await resolveExpenseSplits({
       isPersonal, userId: req.user._id, totalAmount, paidBy, splitType, splits, User,
@@ -321,6 +365,8 @@ router.put('/:id', [
     expense.category = category || expense.category || 'Uncategorized';
     expense.isPersonal = !!isPersonal;
     if (tag !== undefined) expense.tag = tag;
+    if (hideFromFamily !== undefined) expense.hideFromFamily = !!hideFromFamily;
+    if (date !== undefined) expense.date = new Date(date);
 
     await expense.save();
 

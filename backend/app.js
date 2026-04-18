@@ -13,6 +13,9 @@ const groupRoutes = require('./routes/groups');
 const budgetRoutes = require('./routes/budgets');
 const incomeRoutes = require('./routes/income');
 const cashflowRoutes = require('./routes/cashflow');
+const familyRoutes = require('./routes/family');
+const investmentRoutes = require('./routes/investments');
+const savingsRoutes = require('./routes/savings');
 
 const app = express();
 
@@ -58,6 +61,9 @@ app.use('/api/groups', apiLimiter, groupRoutes);
 app.use('/api/budgets', apiLimiter, budgetRoutes);
 app.use('/api/income', apiLimiter, incomeRoutes);
 app.use('/api/cashflow', apiLimiter, cashflowRoutes);
+app.use('/api/family', apiLimiter, familyRoutes);
+app.use('/api/investments', apiLimiter, investmentRoutes);
+app.use('/api/savings', apiLimiter, savingsRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

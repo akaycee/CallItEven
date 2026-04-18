@@ -26,6 +26,8 @@ import {
   AccountBalanceWallet,
   AttachMoney,
   ShowChart,
+  Savings,
+  FamilyRestroom,
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
 import { ColorModeContext } from '../index';
@@ -236,6 +238,27 @@ const NavBar = ({
           <MenuItem onClick={() => { navigate('/cash-flow'); handleMenuClose(); }}>
             <ListItemIcon><ShowChart fontSize="small" /></ListItemIcon>
             <ListItemText sx={{ color: 'text.primary' }}>Cash Flow</ListItemText>
+          </MenuItem>
+        )}
+
+        {showLogo && !user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-investments'); handleMenuClose(); }}>
+            <ListItemIcon><AccountBalanceWallet fontSize="small" /></ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Investments</ListItemText>
+          </MenuItem>
+        )}
+
+        {showLogo && !user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-savings'); handleMenuClose(); }}>
+            <ListItemIcon><Savings fontSize="small" /></ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Savings Goals</ListItemText>
+          </MenuItem>
+        )}
+
+        {showLogo && !user?.isAdmin && (
+          <MenuItem onClick={() => { navigate('/manage-family'); handleMenuClose(); }}>
+            <ListItemIcon><FamilyRestroom fontSize="small" /></ListItemIcon>
+            <ListItemText sx={{ color: 'text.primary' }}>Family</ListItemText>
           </MenuItem>
         )}
 

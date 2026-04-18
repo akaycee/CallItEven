@@ -4,6 +4,8 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Income = require('../models/Income');
 const Group = require('../models/Group');
+const User = require('../models/User');
+const FamilyGroup = require('../models/FamilyGroup');
 const { expandRecurringIncome, parsePagination, fetchIncomeWithRecurring } = require('../utils/helpers');
 
 const router = express.Router();
@@ -73,7 +75,21 @@ router.post('/', [
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    const query = { user: req.user._id };
+    let query;
+
+    if (req.query.household === 'true') {
+      const user = await User.findById(req.user._id).select('familyGroup').lean();
+      if (!user?.familyGroup) {
+        return res.status(400).json({ message: 'You are not in a family group' });
+      }
+      const family = await FamilyGroup.findById(user.familyGroup).lean();
+      if (!family) {
+        return res.status(400).json({ message: 'Family group not found' });
+      }
+      query = { user: { $in: family.members } };
+    } else {
+      query = { user: req.user._id };
+    }
 
     let startDate, endDate;
     if (req.query.startDate && req.query.endDate) {
