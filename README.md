@@ -4,33 +4,41 @@ A modern expense splitting, personal budgeting, and income tracking web applicat
 
 ## Features
 
-- 🔐 **User Authentication** - Secure email-based registration and login with JWT
-- 👥 **User Search** - Find and add other users by their email address
-- 💰 **Expense Management** - Create, edit, view, and delete expenses
-- 🧍 **Personal Expenses** - Track your own spending without splitting with anyone
-- 📊 **Three Split Methods**:
+- **User Authentication** - Secure email-based registration and login with JWT
+- **User Search** - Find and add other users by their email address
+- **Expense Management** - Create, edit, view, and delete expenses
+- **Personal Expenses** - Track your own spending without splitting with anyone
+- **Three Split Methods**:
   - **Equal Split** - Divide expenses equally among all participants
   - **Percentage Split** - Assign custom percentages to each person
   - **Unequal Split** - Enter exact amounts for each participant
-- 📈 **Balance Summary** - Track who owes you and who you owe
-- 💵 **Monthly Budgets** - Set per-category spending limits and track progress
+- **Balance Summary** - Track who owes you and who you owe
+- **Monthly Budgets** - Set per-category spending limits and track progress
   - Budgets track your share of all expenses (personal + shared)
   - Color-coded progress bars (green/amber/red)
   - Click to drill into expenses by category
-- 🎨 **Material Design UI** - Clean, modern interface with Material-UI components
-- 🌗 **Dark/Light Mode** - Toggle between themes
-- 👥 **Groups** - Organize participants into groups for recurring splits
-- 🏷️ **Categories** - Categorize expenses with default and custom categories
-- 🎉 **Settlements** - Record payments to even up balances
-- 💵 **Income Tracking** - Track multiple income sources with categories and descriptions
+- **Material Design UI** - Clean, modern interface with Material-UI components
+- **Dark/Light Mode** - Toggle between themes (preference saved per user)
+- **Mobile Responsive** - Optimized layouts for phones, tablets, and desktops
+- **Groups** - Organize participants into groups for recurring splits
+- **Categories** - Categorize expenses with default and custom categories
+- **Settlements** - Record payments to even up balances with celebrations
+- **Income Tracking** - Track multiple income sources with categories and descriptions
   - Recurring income support (weekly, biweekly, monthly, yearly)
   - Optional group visibility for shared income
   - Date-range filtering with automatic recurrence expansion
-- 📊 **Cash Flow Visualization** - Dedicated cash flow page with:
-  - **Sankey Diagram** - Visual flow from income sources → total income → expense categories (+ savings)
+- **Cash Flow Visualization** - Dedicated cash flow page with:
+  - **Sankey Diagram** - Visual flow from income sources to expense categories (+ savings)
   - **Bar Chart** - Monthly income vs expenses with net savings trend line
   - Summary cards for total income, total expenses, and net savings
   - Date range filters (month, quarter, year, custom) and group filtering
+- **Investments** - Track investment accounts with current values
+- **Savings Goals** - Set and track progress toward savings targets
+- **Family Groups** - Create a family, invite members, and view household-wide finances
+  - **Household Mode** - Toggle between personal and household views on Dashboard and Cash Flow
+  - Hide sensitive personal expenses from family view
+- **Notes** - Keep personal financial reminders accessible from the bottom bar
+- **Admin Panel** - Manage users, categories, and view platform stats
 
 ## Tech Stack
 
@@ -107,7 +115,7 @@ mongod
 
 ### 5. Run the Application
 
-You'll need two terminal windows:
+#### Development (two terminals)
 
 **Terminal 1 - Backend:**
 ```bash
@@ -122,6 +130,75 @@ npm start
 ```
 
 The application will open at `http://localhost:3000` and the API will run on `http://localhost:5000`.
+
+## Production Deployment (Nginx + PM2)
+
+For running in production on a local machine or server:
+
+### Prerequisites
+- [Nginx](https://nginx.org/en/download.html) installed (e.g., extracted to `C:\nginx` on Windows)
+- PM2 installed globally: `npm install -g pm2`
+
+### 1. Build the Frontend
+```bash
+cd frontend
+npm run build
+```
+
+### 2. Configure Environment
+Edit `backend/.env`:
+```
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/calliteven
+JWT_SECRET=<your-secure-random-string>
+NODE_ENV=production
+```
+
+### 3. Start the Backend with PM2
+```bash
+cd backend
+pm2 start ecosystem.config.js
+pm2 status   # verify it shows "online"
+```
+
+### 4. Configure Nginx
+Copy the provided `nginx.conf` from the project root to your Nginx installation's `conf/` directory. The config:
+- Serves `frontend/build/` as static files at `/`
+- Proxies `/api/` requests to the Node backend on port 5000
+- Enables gzip compression and static asset caching
+- Handles React Router with `try_files`
+
+Adjust the `root` path in `nginx.conf` to match your project location.
+
+### 5. Start Nginx
+```bash
+# Windows
+cd C:\nginx && nginx.exe
+
+# Linux
+sudo systemctl start nginx
+```
+
+### 6. Access the Application
+Open `http://localhost` in your browser.
+
+### Management Commands
+```bash
+# Stop backend
+pm2 stop all
+
+# Restart backend
+pm2 restart calliteven-api
+
+# View logs
+pm2 logs calliteven-api --lines 50 --nostream
+
+# Stop Nginx (Windows)
+cd C:\nginx && nginx.exe -s quit
+
+# Stop Nginx (Linux)
+sudo systemctl stop nginx
+```
 
 ## Usage
 
@@ -188,6 +265,9 @@ CallItEven/
 │   │   ├── User.js
 │   │   ├── Expense.js
 │   │   ├── Income.js
+│   │   ├── Investment.js
+│   │   ├── SavingsGoal.js
+│   │   ├── FamilyGroup.js
 │   │   ├── Category.js
 │   │   ├── Group.js
 │   │   ├── Budget.js
@@ -201,12 +281,17 @@ CallItEven/
 │   │   ├── categories.js
 │   │   ├── groups.js
 │   │   ├── budgets.js
+│   │   ├── investments.js
+│   │   ├── savings.js
+│   │   ├── family.js
 │   │   └── admin.js
 │   ├── tests/
 │   ├── utils/
-│   │   └── helpers.js
+│   │   ├── helpers.js
+│   │   └── logger.js
 │   ├── app.js
 │   ├── server.js
+│   ├── ecosystem.config.js
 │   └── package.json
 ├── frontend/
 │   ├── public/
@@ -214,6 +299,7 @@ CallItEven/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── BalanceSummaryCard.js
+│   │   │   ├── BottomBar.js
 │   │   │   ├── BudgetOverview.js
 │   │   │   ├── CashFlowBarChart.js
 │   │   │   ├── CashFlowSankey.js
@@ -221,12 +307,15 @@ CallItEven/
 │   │   │   ├── CelebrationOverlay.js
 │   │   │   ├── EditProfileDialog.js
 │   │   │   ├── EvenUpDialog.js
+│   │   │   ├── ExpenseForm.js
 │   │   │   ├── ExpenseSummaryCard.js
+│   │   │   ├── HouseholdToggle.js
 │   │   │   ├── LoadingScreen.js
 │   │   │   ├── NavBar.js
 │   │   │   └── RecentActivityList.js
 │   │   ├── context/
-│   │   │   └── AuthContext.js
+│   │   │   ├── AuthContext.js
+│   │   │   └── ColorModeContext.js
 │   │   ├── pages/
 │   │   │   ├── Login.js
 │   │   │   ├── Register.js
@@ -236,21 +325,26 @@ CallItEven/
 │   │   │   ├── EditExpense.js
 │   │   │   ├── ManageBudgets.js
 │   │   │   ├── ManageCategories.js
+│   │   │   ├── ManageFamily.js
 │   │   │   ├── ManageGroups.js
 │   │   │   ├── ManageIncome.js
+│   │   │   ├── ManageInvestments.js
+│   │   │   ├── ManageSavings.js
 │   │   │   ├── ManageUsers.js
 │   │   │   └── NotFound.js
+│   │   ├── utils/
 │   │   ├── App.js
 │   │   └── index.js
 │   └── package.json
+├── nginx.conf
 └── README.md
 ```
 
 ## Running Tests
 
-The project includes a comprehensive test suite with **396 tests** covering both backend and frontend to prevent regressions when adding new features.
+The project includes a comprehensive test suite with **157+ frontend tests** and backend tests covering models, middleware, and routes.
 
-### Backend Tests (249 tests)
+### Backend Tests
 
 Uses **Jest**, **Supertest**, and **mongodb-memory-server** (in-memory MongoDB for isolated testing).
 
@@ -278,7 +372,7 @@ npm run test:watch
   - Cash Flow: aggregation accuracy, recurring income expansion, user expense share calculation, settlement exclusion, date-range filtering
   - Admin: user management, cascade delete, platform stats
 
-### Frontend Tests (147 tests)
+### Frontend Tests (157 tests)
 
 Uses **Jest** (via react-scripts) and **React Testing Library**.
 
@@ -297,8 +391,8 @@ npx react-scripts test --testPathPattern="Login.test"
 
 **What's covered:**
 - **Component tests** — BalanceSummaryCard, ExpenseSummaryCard, RecentActivityList, CelebrationOverlay, EditProfileDialog, EvenUpDialog, BudgetOverview, CashFlowSankey, CashFlowBarChart
-- **Page tests** — Login, Register, Dashboard, CreateExpense, EditExpense, ManageGroups, ManageCategories, ManageUsers, ManageBudgets, ManageIncome, CashFlow
-- Form rendering, validation (password mismatch, min length), API calls, error display, auth redirects, admin-only access, personal expense toggle, budget progress bars, income CRUD, chart rendering, empty states
+- **Page tests** -- Login, Register, Dashboard, CreateExpense, EditExpense, ManageGroups, ManageCategories, ManageUsers, ManageBudgets, ManageIncome, ManageFamily, ManageInvestments, ManageSavings, CashFlow
+- Form rendering, validation (password mismatch, min length), API calls, error display, auth redirects, admin-only access, personal expense toggle, budget progress bars, income CRUD, chart rendering, empty states, household mode toggle
 
 ## Security Features
 
@@ -306,20 +400,20 @@ npx react-scripts test --testPathPattern="Login.test"
 - JWT tokens for secure authentication
 - Protected API routes requiring authentication
 - Input validation on both frontend and backend
+- Rate limiting on auth and API routes
+- CORS configuration for production domains
+- Proxy trust headers for Nginx reverse proxy
+- Graceful server shutdown with connection cleanup
 
 ## Future Enhancements
 
 - User profile pictures
-- Payment history and settlement tracking
 - Email notifications
 - Export to CSV/PDF
 - Multi-currency support
-- Mobile responsive improvements
 - Budget alerts/notifications when approaching limits
 - Weekly/yearly budget periods
 - Recurring expenses
-- Income vs budget comparison
-- Savings goals tracking
 - Year-over-year financial trends
 
 ## Contributing
