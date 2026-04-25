@@ -201,7 +201,7 @@ const CashFlowBarChart = React.memo(({ monthly = [] }) => {
         >
           Income vs Expenses Over Time
         </Typography>
-        <Box sx={{ position: 'relative', height: 350 }}>
+        <Box sx={{ position: 'relative', height: { xs: 250, sm: 300, md: 350 } }}>
           <Bar data={data} options={options} />
         </Box>
       </CardContent>

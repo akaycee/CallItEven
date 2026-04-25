@@ -30,7 +30,7 @@ describe('ManageFamily', () => {
   it('should render create form when no family group', () => {
     renderPage();
     expect(screen.getByText('Create Your Family')).toBeInTheDocument();
-    expect(screen.getByLabelText('Family Name')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Family Name/)).toBeInTheDocument();
   });
 
   it('should render family details when family exists', () => {

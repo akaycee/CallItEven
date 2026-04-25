@@ -17,7 +17,7 @@ import {
 import { ArrowBack, Brightness4, Brightness7 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { ColorModeContext } from '../index';
+import { ColorModeContext } from '../context/ColorModeContext';
 import ExpenseForm from '../components/ExpenseForm';
 import BottomBar from '../components/BottomBar';
 import { GRADIENT_CYAN_TRIPLE } from '../utils/themeConstants';

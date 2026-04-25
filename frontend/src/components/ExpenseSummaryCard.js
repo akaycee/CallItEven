@@ -86,18 +86,19 @@ export const ExpenseSummaryCard = React.memo(({
       }}
     >
       <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
           <Typography 
             variant="h6" 
             sx={{ 
               fontWeight: 700,
               ...gradientText(GRADIENT_PURPLE_PINK),
+              fontSize: { xs: '1rem', sm: '1.25rem' },
             }}
           >
             Expense Summary
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <FormControl size="small" sx={{ minWidth: 150 }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 150 } }}>
               <Select
                 value={dateFilter}
                 onChange={onDateFilterChange}
@@ -131,7 +132,7 @@ export const ExpenseSummaryCard = React.memo(({
                   value={customDates.startDate}
                   onChange={onCustomDateChange}
                   InputLabelProps={{ shrink: true }}
-                  sx={{ width: 150 }}
+                  sx={{ width: { xs: '100%', sm: 150 } }}
                 />
                 <TextField
                   type="date"
@@ -140,7 +141,7 @@ export const ExpenseSummaryCard = React.memo(({
                   value={customDates.endDate}
                   onChange={onCustomDateChange}
                   InputLabelProps={{ shrink: true }}
-                  sx={{ width: 150 }}
+                  sx={{ width: { xs: '100%', sm: 150 } }}
                 />
               </>
             )}
@@ -148,7 +149,7 @@ export const ExpenseSummaryCard = React.memo(({
         </Box>
         <Grid container spacing={2}>
           {statCards.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={2.4} key={index}>
+            <Grid item xs={6} sm={6} md={2.4} key={index}>
               <Box
                 sx={{
                   p: 2,

@@ -4,8 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import axios from 'axios';
 import App from './App';
-
-export const ColorModeContext = React.createContext({ toggleColorMode: () => {} });
+import { ColorModeContext } from './context/ColorModeContext';
 
 function AppWrapper() {
   const [mode, setMode] = useState('light');

@@ -30,7 +30,7 @@ import {
   FamilyRestroom,
 } from '@mui/icons-material';
 import { AuthContext } from '../context/AuthContext';
-import { ColorModeContext } from '../index';
+import { ColorModeContext } from '../context/ColorModeContext';
 import { getInitials } from '../utils/getInitials';
 import { GRADIENT_RAINBOW, GRADIENT_PURPLE_PINK } from '../utils/themeConstants';
 
@@ -87,7 +87,7 @@ const NavBar = ({
           boxShadow: showLogo ? '0 4px 20px rgba(139, 92, 246, 0.3)' : undefined,
         }}
       >
-        <Toolbar sx={{ py: 1.5, position: 'relative', zIndex: 1 }}>
+        <Toolbar sx={{ py: { xs: 0.75, sm: 1.5 }, position: 'relative', zIndex: 1 }}>
           {showBack && (
             <IconButton
               edge="start"
@@ -109,24 +109,24 @@ const NavBar = ({
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5,
+                gap: { xs: 1, sm: 1.5 },
                 background: 'rgba(255, 255, 255, 0.2)',
                 backdropFilter: 'blur(10px)',
                 borderRadius: 3,
-                px: 2,
-                py: 1,
+                px: { xs: 1.5, sm: 2 },
+                py: { xs: 0.5, sm: 1 },
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
               }}
             >
-              <Receipt sx={{ fontSize: 32, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }} />
+              <Receipt sx={{ fontSize: { xs: 24, sm: 32 }, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }} />
               <Typography
                 variant="h6"
                 component="div"
                 sx={{
                   fontWeight: 800,
                   letterSpacing: '-0.02em',
-                  fontSize: '1.5rem',
+                  fontSize: { xs: '1.1rem', sm: '1.5rem' },
                   textShadow: '0 2px 4px rgba(0,0,0,0.2)',
                 }}
               >
@@ -163,8 +163,8 @@ const NavBar = ({
                 border: showLogo ? '2px solid rgba(255, 255, 255, 0.5)' : undefined,
                 backdropFilter: 'blur(10px)',
                 boxShadow: showLogo ? '0 4px 12px rgba(0, 0, 0, 0.2)' : undefined,
-                width: showLogo ? 48 : 32,
-                height: showLogo ? 48 : 32,
+                width: showLogo ? { xs: 36, sm: 48 } : 32,
+                height: showLogo ? { xs: 36, sm: 48 } : 32,
                 textShadow: '0 1px 2px rgba(0,0,0,0.3)',
               }}
             >

@@ -111,8 +111,8 @@ function Register() {
             },
           }}
         >
-          <CardContent sx={{ p: 5 }}>
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+            <Box sx={{ textAlign: 'center', mb: { xs: 3, sm: 4 } }}>
               <Typography 
                 variant="h4" 
                 component="h1" 
@@ -120,7 +120,7 @@ function Register() {
                 sx={{
                   ...gradientText(GRADIENT_CYAN_TRIPLE),
                   fontWeight: 800,
-                  fontSize: '2.5rem',
+                  fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' },
                   letterSpacing: '-0.03em',
                 }}
               >

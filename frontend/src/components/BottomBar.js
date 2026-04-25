@@ -79,9 +79,10 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 1,
-          px: 2,
-          py: 1,
+          flexWrap: 'wrap',
+          gap: { xs: 0.5, sm: 1 },
+          px: { xs: 0.5, sm: 2 },
+          py: { xs: 0.5, sm: 1 },
           background: theme.palette.mode === 'dark'
             ? 'rgba(15, 23, 42, 0.95)'
             : 'rgba(255, 255, 255, 0.95)',
@@ -143,18 +144,20 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
             display: 'flex', flexDirection: 'row', gap: 0.25, px: 0.75, py: 0.5, borderRadius: 2.5,
             background: '#10b981',
           }}>
-            {[{ icon: <TrendingUp sx={{ fontSize: 20 }} />, label: 'Add', onClick: handleAddIncome },
-              { icon: <AttachMoney sx={{ fontSize: 20 }} />, label: 'Income', onClick: () => navigate('/manage-income') },
+            {[{ icon: <TrendingUp sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Add', onClick: handleAddIncome },
+              { icon: <AttachMoney sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Income', onClick: () => navigate('/manage-income') },
             ].map((item) => (
               <Box key={item.label} onClick={item.onClick} sx={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
-                px: 1, py: 0.25, borderRadius: 2, color: 'white',
+                px: { xs: 0.5, sm: 1 }, py: 0.25, borderRadius: 2, color: 'white',
+                minWidth: 36, minHeight: 36,
+                justifyContent: 'center',
                 transition: 'all 0.2s ease',
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 '&:active': { transform: 'scale(0.95)' },
               }}>
                 {item.icon}
-                <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
               </Box>
             ))}
           </Box>
@@ -166,18 +169,20 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
             display: 'flex', flexDirection: 'row', gap: 0.25, px: 0.75, py: 0.5, borderRadius: 2.5,
             background: '#f97316',
           }}>
-            {[{ icon: <ShoppingCart sx={{ fontSize: 20 }} />, label: 'Add', onClick: handleAddExpense },
-              { icon: <AccountBalanceWallet sx={{ fontSize: 20 }} />, label: 'Budgets', onClick: () => navigate('/manage-budgets') },
+            {[{ icon: <ShoppingCart sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Add', onClick: handleAddExpense },
+              { icon: <AccountBalanceWallet sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Budgets', onClick: () => navigate('/manage-budgets') },
             ].map((item) => (
               <Box key={item.label} onClick={item.onClick} sx={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
-                px: 1, py: 0.25, borderRadius: 2, color: 'white',
+                px: { xs: 0.5, sm: 1 }, py: 0.25, borderRadius: 2, color: 'white',
+                minWidth: 36, minHeight: 36,
+                justifyContent: 'center',
                 transition: 'all 0.2s ease',
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 '&:active': { transform: 'scale(0.95)' },
               }}>
                 {item.icon}
-                <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
               </Box>
             ))}
           </Box>
@@ -189,18 +194,20 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
             display: 'flex', flexDirection: 'row', gap: 0.25, px: 0.75, py: 0.5, borderRadius: 2.5,
             background: '#8b5cf6',
           }}>
-            {[{ icon: <LocalOffer sx={{ fontSize: 20 }} />, label: 'Categories', onClick: () => navigate('/manage-categories') },
-              { icon: <Person sx={{ fontSize: 20 }} />, label: 'Users', onClick: () => navigate('/manage-users') },
+            {[{ icon: <LocalOffer sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Categories', onClick: () => navigate('/manage-categories') },
+              { icon: <Person sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Users', onClick: () => navigate('/manage-users') },
             ].map((item) => (
               <Box key={item.label} onClick={item.onClick} sx={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
-                px: 1, py: 0.25, borderRadius: 2, color: 'white',
+                px: { xs: 0.5, sm: 1 }, py: 0.25, borderRadius: 2, color: 'white',
+                minWidth: 36, minHeight: 36,
+                justifyContent: 'center',
                 transition: 'all 0.2s ease',
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
                 '&:active': { transform: 'scale(0.95)' },
               }}>
                 {item.icon}
-                <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+                <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
               </Box>
             ))}
           </Box>
@@ -212,22 +219,24 @@ const BottomBar = ({ onAddIncome, onAddExpense }) => {
           background: theme.palette.mode === 'dark' ? '#334155' : '#64748b',
         }}>
           {[
-            ...(!user?.isAdmin ? [{ icon: <ShowChart sx={{ fontSize: 20 }} />, label: 'Flow', onClick: () => navigate('/cash-flow') }] : []),
-            ...(!user?.isAdmin ? [{ icon: <AccountBalanceWallet sx={{ fontSize: 20 }} />, label: 'Invest', onClick: () => navigate('/manage-investments') }] : []),
-            ...(!user?.isAdmin ? [{ icon: <Savings sx={{ fontSize: 20 }} />, label: 'Save', onClick: () => navigate('/manage-savings') }] : []),
-            { icon: <People sx={{ fontSize: 20 }} />, label: 'Groups', onClick: () => navigate('/manage-groups') },
-            ...(!user?.isAdmin ? [{ icon: <FamilyRestroom sx={{ fontSize: 20 }} />, label: 'Family', onClick: () => navigate('/manage-family') }] : []),
-            { icon: <StickyNote2 sx={{ fontSize: 20 }} />, label: 'Notes', onClick: handleOpenNotes },
+            ...(!user?.isAdmin ? [{ icon: <ShowChart sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Flow', onClick: () => navigate('/cash-flow') }] : []),
+            ...(!user?.isAdmin ? [{ icon: <AccountBalanceWallet sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Invest', onClick: () => navigate('/manage-investments') }] : []),
+            ...(!user?.isAdmin ? [{ icon: <Savings sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Save', onClick: () => navigate('/manage-savings') }] : []),
+            { icon: <People sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Groups', onClick: () => navigate('/manage-groups') },
+            ...(!user?.isAdmin ? [{ icon: <FamilyRestroom sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Family', onClick: () => navigate('/manage-family') }] : []),
+            { icon: <StickyNote2 sx={{ fontSize: { xs: 18, sm: 20 } }} />, label: 'Notes', onClick: handleOpenNotes },
           ].map((item) => (
             <Box key={item.label} onClick={item.onClick} sx={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer',
-              px: 1, py: 0.25, borderRadius: 2, color: 'white',
+              px: { xs: 0.5, sm: 1 }, py: 0.25, borderRadius: 2, color: 'white',
+              minWidth: 36, minHeight: 36,
+              justifyContent: 'center',
               transition: 'all 0.2s ease',
               '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' },
               '&:active': { transform: 'scale(0.95)' },
             }}>
               {item.icon}
-              <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
+              <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, mt: 0.25, lineHeight: 1, color: 'white' }}>{item.label}</Typography>
             </Box>
           ))}
         </Box>

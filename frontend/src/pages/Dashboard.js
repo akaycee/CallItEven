@@ -70,7 +70,7 @@ import BottomBar from '../components/BottomBar';
 import HouseholdToggle from '../components/HouseholdToggle';
 import { GRADIENT_RAINBOW, GRADIENT_PURPLE_PINK, GRADIENT_PURPLE_PINK_HOVER, GRADIENT_ORANGE_RED, GRADIENT_EMERALD_TEAL, GRADIENT_ORANGE_TEAL, GRADIENT_ORANGE_PURPLE, GRADIENT_ORANGE_PURPLE_HOVER, cardBg, gradientText } from '../utils/themeConstants';
 import { AuthContext } from '../context/AuthContext';
-import { ColorModeContext } from '../index';
+import { ColorModeContext } from '../context/ColorModeContext';
 import { formatCurrency } from '../utils/formatCurrency';
 import { getDateRange } from '../utils/getDateRange';
 import { getInitials } from '../utils/getInitials';
@@ -824,7 +824,7 @@ function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 12, pb: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: 12, pb: 4, px: { xs: 1.5, sm: 3 } }}>
         {/* Household Toggle */}
         <HouseholdToggle
           value={viewMode}
@@ -842,7 +842,7 @@ function Dashboard() {
         {!loading && expenses.length > 0 && (
           <>
           {/* Expense Type Filter */}
-          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 1 }}>
             <ToggleButtonGroup
               value={expenseTypeFilter}
               exclusive
@@ -850,7 +850,8 @@ function Dashboard() {
               size="small"
               sx={{
                 '& .MuiToggleButton-root': {
-                  px: 3,
+                  px: { xs: 1.5, sm: 3 },
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   fontWeight: 600,
                   textTransform: 'none',
                   '&.Mui-selected': {
@@ -872,7 +873,7 @@ function Dashboard() {
               placeholder="Filter by tag..."
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
-              sx={{ ml: 2, minWidth: 160 }}
+              sx={{ minWidth: { xs: '100%', sm: 160 } }}
               InputProps={{
                 sx: { fontSize: '0.85rem' },
               }}
@@ -908,7 +909,7 @@ function Dashboard() {
               border: '1px solid rgba(249, 115, 22, 0.2)',
             }}
           >
-            <CardContent sx={{ p: 4 }}>
+            <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
               <Typography 
                 variant="h5" 
                 gutterBottom
@@ -916,6 +917,7 @@ function Dashboard() {
                   fontWeight: 800,
                   ...gradientText(GRADIENT_ORANGE_TEAL),
                   mb: 2,
+                  fontSize: { xs: '1.2rem', sm: '1.5rem' },
                 }}
               >
                 Expenses by Category
@@ -1048,18 +1050,19 @@ function Dashboard() {
             border: '1px solid rgba(249, 115, 22, 0.2)',
           }}
         >
-          <CardContent sx={{ p: 4 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
               <Typography 
                 variant="h5" 
                 sx={{ 
                   fontWeight: 800,
                   ...gradientText(GRADIENT_ORANGE_PURPLE),
+                  fontSize: { xs: '1.2rem', sm: '1.5rem' },
                 }}
               >
                 Recent Activity
               </Typography>
-              <FormControl size="small" sx={{ minWidth: 160 }}>
+              <FormControl size="small" sx={{ minWidth: { xs: 120, sm: 160 } }}>
                 <InputLabel>Show</InputLabel>
                 <Select
                   value={activityFilter}

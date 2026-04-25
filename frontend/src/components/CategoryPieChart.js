@@ -53,7 +53,7 @@ export const CategoryPieChart = React.memo(({
         >
           Expenses by Category
         </Typography>
-        <Box sx={{ position: 'relative', height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ position: 'relative', height: { xs: 280, sm: 340, md: 400 }, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {categoryData.labels.length > 0 ? (
             <>
               <Pie data={categoryData} options={chartOptions} />

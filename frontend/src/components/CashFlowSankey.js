@@ -159,7 +159,7 @@ const CashFlowSankey = React.memo(({ incomeBySource = [], expensesByCategory = [
         >
           Cash Flow Diagram
         </Typography>
-        <Box sx={{ position: 'relative', height: 400 }}>
+        <Box sx={{ position: 'relative', height: { xs: 280, sm: 340, md: 400 } }}>
           <ChartJS type="sankey" data={data} options={options} />
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 2, mt: 2 }}>

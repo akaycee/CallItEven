@@ -183,7 +183,7 @@ function ManageFamily() {
     <Box sx={{ minHeight: '100vh', pb: 10, bgcolor: 'background.default' }}>
       <NavBar title="Family Group" showBack backPath="/dashboard" />
 
-      <Container maxWidth="sm" sx={{ mt: 3 }}>
+      <Container maxWidth="sm" sx={{ mt: { xs: 2, sm: 3 }, px: { xs: 1.5, sm: 3 } }}>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 

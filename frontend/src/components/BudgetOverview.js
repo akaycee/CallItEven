@@ -38,7 +38,7 @@ const BudgetOverview = React.memo(({ budgetSummary = [], formatCurrency, onCateg
         border: '1px solid rgba(16, 185, 129, 0.2)',
       }}
     >
-      <CardContent sx={{ p: 4 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <AccountBalanceWallet sx={{ color: '#10b981' }} />
           <Typography

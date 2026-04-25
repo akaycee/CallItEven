@@ -99,7 +99,7 @@ function CashFlow() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Cash Flow" showBack backPath="/dashboard" />
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 10 }}>
+      <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: 10, px: { xs: 1.5, sm: 3 } }}>
         {/* Household Toggle */}
         <HouseholdToggle
           value={viewMode}
@@ -132,7 +132,7 @@ function CashFlow() {
                 size="small"
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
-                sx={{ width: 150 }}
+                sx={{ width: { xs: '100%', sm: 150 } }}
                 InputLabelProps={{ shrink: true }}
               />
               <Typography variant="body2" color="text.secondary">to</Typography>
@@ -141,7 +141,7 @@ function CashFlow() {
                 size="small"
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
-                sx={{ width: 150 }}
+                sx={{ width: { xs: '100%', sm: 150 } }}
                 InputLabelProps={{ shrink: true }}
               />
             </>
@@ -183,7 +183,7 @@ function CashFlow() {
                 >
                   <CardContent sx={{ textAlign: 'center' }}>
                     <TrendingUp sx={{ fontSize: 40, color: '#10b981', mb: 1 }} />
-                    <Typography variant="h4" fontWeight={800} sx={{ color: '#10b981' }}>
+                    <Typography variant="h4" fontWeight={800} sx={{ color: '#10b981', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {formatCurrency(data.totalIncome)}
                     </Typography>
                     <Typography variant="body1" color="text.secondary" fontWeight={600}>
@@ -206,7 +206,7 @@ function CashFlow() {
                 >
                   <CardContent sx={{ textAlign: 'center' }}>
                     <TrendingDown sx={{ fontSize: 40, color: '#f97316', mb: 1 }} />
-                    <Typography variant="h4" fontWeight={800} sx={{ color: '#f97316' }}>
+                    <Typography variant="h4" fontWeight={800} sx={{ color: '#f97316', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                       {formatCurrency(data.totalExpenses)}
                     </Typography>
                     <Typography variant="body1" color="text.secondary" fontWeight={600}>
@@ -240,7 +240,7 @@ function CashFlow() {
                     <Typography
                       variant="h4"
                       fontWeight={800}
-                      sx={{ color: data.netSavings >= 0 ? '#8b5cf6' : '#ef4444' }}
+                      sx={{ color: data.netSavings >= 0 ? '#8b5cf6' : '#ef4444', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
                     >
                       {data.netSavings >= 0 ? '+' : '-'}{formatCurrency(data.netSavings)}
                     </Typography>

@@ -197,7 +197,7 @@ function ManageSavings() {
       <FullCelebration show={showCelebration} />
       <NavBar title="Savings Goals" showBack backPath="/dashboard" />
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
+      <Container maxWidth="md" sx={{ mt: { xs: 2, sm: 4 }, mb: 10, px: { xs: 1.5, sm: 3 } }}>
         <HouseholdToggle value={viewMode} onChange={(e, val) => { if (val) setViewMode(val); }} />
 
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}

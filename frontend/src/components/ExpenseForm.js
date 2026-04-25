@@ -419,7 +419,7 @@ function ExpenseForm({
                       </Grid>
 
                       {formData.splitType === 'percentage' && (
-                        <Grid item xs={10} sm={5}>
+                        <Grid item xs={9} sm={5}>
                           <TextField
                             fullWidth
                             size="small"
@@ -440,7 +440,7 @@ function ExpenseForm({
                       )}
 
                       {formData.splitType === 'unequal' && (
-                        <Grid item xs={10} sm={5}>
+                        <Grid item xs={9} sm={5}>
                           <TextField
                             fullWidth
                             size="small"
@@ -461,7 +461,7 @@ function ExpenseForm({
                       )}
 
                       {formData.splitType === 'equal' && (
-                        <Grid item xs={10} sm={5}>
+                        <Grid item xs={9} sm={5}>
                           <Typography variant="body2" color="text.secondary">
                             {formData.totalAmount
                               ? `$${(
@@ -472,12 +472,13 @@ function ExpenseForm({
                         </Grid>
                       )}
 
-                      <Grid item xs={2}>
+                      <Grid item xs={3} sm={2}>
                         {participants.length > 1 && (
                           <IconButton
                             size="small"
                             onClick={() => handleRemoveParticipant(index)}
                             color="error"
+                            sx={{ minWidth: 36, minHeight: 36 }}
                           >
                             <Delete />
                           </IconButton>

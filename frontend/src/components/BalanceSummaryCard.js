@@ -86,24 +86,25 @@ export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handle
         },
       }}
     >
-      <CardContent sx={{ p: 4 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         <Typography 
           variant="h5" 
           sx={{ 
             mb: 3,
             fontWeight: 800,
             ...gradientText(GRADIENT_TEAL_EMERALD),
+            fontSize: { xs: '1.2rem', sm: '1.5rem' },
           }}
         >
           Balance Summary
         </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
           <Box sx={{ flex: 1 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <TrendingUpIcon sx={{ fontSize: 16, color: '#10b981' }} />
               People owe you
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#10b981' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#10b981', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               {formatCurrency(summary.owedToYou)}
             </Typography>
           </Box>
@@ -112,7 +113,7 @@ export const BalanceSummaryCard = React.memo(({ balances, formatCurrency, handle
               <TrendingDownIcon sx={{ fontSize: 16, color: '#ef4444' }} />
               You owe
             </Typography>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ef4444' }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: '#ef4444', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
               {formatCurrency(summary.youOwe)}
             </Typography>
           </Box>

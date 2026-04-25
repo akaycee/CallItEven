@@ -210,7 +210,7 @@ function ManageBudgets() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <NavBar title="Manage Budgets" showBack backPath="/dashboard" />
 
-      <Container maxWidth="md" sx={{ mt: 4, mb: 10 }}>
+      <Container maxWidth="md" sx={{ mt: { xs: 2, sm: 4 }, mb: 10, px: { xs: 1.5, sm: 3 } }}>
         {/* Household Toggle */}
         <HouseholdToggle
           value={viewMode}
@@ -239,7 +239,7 @@ function ManageBudgets() {
             border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.2)'}`,
           }}
         >
-          <CardContent sx={{ p: 4 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
               <Typography
                 variant="h5"
@@ -271,7 +271,7 @@ function ManageBudgets() {
                       size="small"
                       value={customStart}
                       onChange={(e) => setCustomStart(e.target.value)}
-                      sx={{ width: 150 }}
+                      sx={{ width: { xs: '100%', sm: 150 } }}
                       InputLabelProps={{ shrink: true }}
                     />
                     <Typography variant="body2" color="text.secondary">to</Typography>
@@ -280,7 +280,7 @@ function ManageBudgets() {
                       size="small"
                       value={customEnd}
                       onChange={(e) => setCustomEnd(e.target.value)}
-                      sx={{ width: 150 }}
+                      sx={{ width: { xs: '100%', sm: 150 } }}
                       InputLabelProps={{ shrink: true }}
                     />
                   </>

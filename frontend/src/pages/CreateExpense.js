@@ -14,7 +14,7 @@ import {
 import { ArrowBack, Brightness4, Brightness7 } from '@mui/icons-material';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { ColorModeContext } from '../index';
+import { ColorModeContext } from '../context/ColorModeContext';
 import ExpenseForm from '../components/ExpenseForm';
 import BottomBar from '../components/BottomBar';
 import { GRADIENT_CYAN_TRIPLE } from '../utils/themeConstants';
@@ -206,7 +206,7 @@ function CreateExpense({ onDone, isDialog = false }) {
               flexGrow: 1,
               fontWeight: 700,
               letterSpacing: '-0.02em',
-              fontSize: '1.4rem',
+              fontSize: { xs: '1.1rem', sm: '1.4rem' },
             }}
           >
           <IconButton 
@@ -231,7 +231,7 @@ function CreateExpense({ onDone, isDialog = false }) {
 
       <Container maxWidth="md" sx={{ mt: isDialog ? 0 : 4, mb: isDialog ? 4 : 10 }}>
         <Card elevation={0}>
-          <CardContent sx={{ p: 5 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3, md: 5 } }}>
             <ExpenseForm
               formData={formData}
               setFormData={setFormData}
