@@ -27,8 +27,10 @@ export const ExpenseSummaryCard = React.memo(({
   customDates,
   onCustomDateChange,
   formatCurrency,
+  viewMode,
 }) => {
   const theme = useTheme();
+  const isHousehold = viewMode === 'household';
 
   const statCards = [
     { 
@@ -43,12 +45,12 @@ export const ExpenseSummaryCard = React.memo(({
       icon: <AttachMoney />,
       color: '#ec4899',
     },
-    { 
+    ...(!isHousehold ? [{ 
       label: 'Your Share', 
       value: formatCurrency(expenseStats.yourShare), 
       icon: <AccountBalance />,
       color: '#f97316',
-    },
+    }] : []),
     { 
       label: 'Categories', 
       value: expenseStats.categoriesUsed, 

@@ -96,7 +96,7 @@ function Dashboard() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categoryDialog, setCategoryDialog] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [dateFilter, setDateFilter] = useState('month');
+  const [dateFilter, setDateFilter] = useState('year');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
@@ -450,6 +450,9 @@ function Dashboard() {
   );
 
   const getUserShare = (expense) => {
+    if (viewMode === 'household') {
+      return expense.totalAmount;
+    }
     const userSplit = expense.splits.find(split => split.user._id === user._id);
     return userSplit ? userSplit.amount : 0;
   };
@@ -883,6 +886,7 @@ function Dashboard() {
             customDates={customDates}
             onCustomDateChange={handleCustomDateChange}
             formatCurrency={formatCurrency}
+            viewMode={viewMode}
           />
 
           {/* Budget Overview */}
@@ -1632,7 +1636,9 @@ function Dashboard() {
                                 {expense.paidBy._id === user._id
                                   ? 'You'
                                   : expense.paidBy.name}
-                                {' \u2022 Your share: '}{formatCurrency(getUserShare(expense))}
+                                {viewMode !== 'household' && (
+                                  <>{' \u2022 Your share: '}{formatCurrency(expense.splits.find(s => s.user._id === user._id)?.amount || 0)}</>
+                                )}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">
                                 {new Date(expense.date || expense.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
