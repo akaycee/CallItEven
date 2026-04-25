@@ -16,17 +16,34 @@ const escapeRegex = (str) => {
  */
 const calculateSplits = (totalAmount, splitType, splits) => {
   if (splitType === 'equal') {
-    const amountPerPerson = totalAmount / splits.length;
-    return splits.map(split => ({
+    const count = splits.length;
+    const baseAmount = Math.floor((totalAmount / count) * 100) / 100;
+    const remainder = Math.round((totalAmount - baseAmount * count) * 100) / 100;
+
+    // Give the remainder penny to a random person
+    const luckyIndex = Math.floor(Math.random() * count);
+
+    return splits.map((split, i) => ({
       user: split.user,
-      amount: parseFloat(amountPerPerson.toFixed(2)),
-      percentage: parseFloat((100 / splits.length).toFixed(2))
+      amount: parseFloat((baseAmount + (i === luckyIndex ? remainder : 0)).toFixed(2)),
+      percentage: parseFloat((100 / count).toFixed(2))
     }));
   } else if (splitType === 'percentage') {
-    return splits.map(split => ({
+    const calculated = splits.map(split => ({
       user: split.user,
-      amount: parseFloat((totalAmount * split.percentage / 100).toFixed(2)),
+      baseAmount: Math.floor((totalAmount * split.percentage / 100) * 100) / 100,
       percentage: split.percentage
+    }));
+    const sumSoFar = calculated.reduce((s, c) => s + c.baseAmount, 0);
+    const remainder = Math.round((totalAmount - sumSoFar) * 100) / 100;
+    if (remainder !== 0) {
+      const luckyIndex = Math.floor(Math.random() * calculated.length);
+      calculated[luckyIndex].baseAmount = parseFloat((calculated[luckyIndex].baseAmount + remainder).toFixed(2));
+    }
+    return calculated.map(c => ({
+      user: c.user,
+      amount: c.baseAmount,
+      percentage: c.percentage
     }));
   } else if (splitType === 'unequal') {
     return splits.map(split => ({

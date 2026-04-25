@@ -98,17 +98,31 @@ function EditExpense() {
     const totalAmount = parseFloat(formData.totalAmount);
     
     if (formData.splitType === 'equal') {
-      const amountPerPerson = totalAmount / participants.length;
-      return participants.map((p) => ({
+      const count = participants.length;
+      const baseAmount = Math.floor((totalAmount / count) * 100) / 100;
+      const remainder = Math.round((totalAmount - baseAmount * count) * 100) / 100;
+      const luckyIndex = Math.floor(Math.random() * count);
+      return participants.map((p, i) => ({
         user: p.user._id,
-        amount: parseFloat(amountPerPerson.toFixed(2)),
-        percentage: parseFloat((100 / participants.length).toFixed(2)),
+        amount: parseFloat((baseAmount + (i === luckyIndex ? remainder : 0)).toFixed(2)),
+        percentage: parseFloat((100 / count).toFixed(2)),
       }));
     } else if (formData.splitType === 'percentage') {
-      return participants.map((p) => ({
+      const calculated = participants.map((p) => ({
         user: p.user._id,
-        amount: parseFloat((totalAmount * parseFloat(p.percentage || 0) / 100).toFixed(2)),
+        baseAmount: Math.floor((totalAmount * parseFloat(p.percentage || 0) / 100) * 100) / 100,
         percentage: parseFloat(p.percentage || 0),
+      }));
+      const sumSoFar = calculated.reduce((s, c) => s + c.baseAmount, 0);
+      const rem = Math.round((totalAmount - sumSoFar) * 100) / 100;
+      if (rem !== 0) {
+        const luckyIndex = Math.floor(Math.random() * calculated.length);
+        calculated[luckyIndex].baseAmount = parseFloat((calculated[luckyIndex].baseAmount + rem).toFixed(2));
+      }
+      return calculated.map(c => ({
+        user: c.user,
+        amount: c.baseAmount,
+        percentage: c.percentage,
       }));
     } else if (formData.splitType === 'unequal') {
       return participants.map((p) => ({
