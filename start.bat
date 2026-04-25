@@ -41,16 +41,26 @@ timeout /t 3 /nobreak >NUL
 pm2 status
 echo.
 
-:: 3. Check if Nginx is already running
+:: 3. Copy nginx config from project
+echo [..] Copying nginx.conf to C:\nginx\conf\...
+copy /Y "%~dp0nginx.conf" "C:\nginx\conf\nginx.conf" >NUL 2>&1
+if %ERRORLEVEL%==0 (
+    echo [OK] nginx.conf copied
+) else (
+    echo [WARN] Could not copy nginx.conf - using existing config
+)
+echo.
+
+:: 4. Check if Nginx is already running
 tasklist /FI "IMAGENAME eq nginx.exe" 2>NUL | find /I "nginx.exe" >NUL
 if %ERRORLEVEL%==0 (
     echo [OK] Nginx is already running - reloading config...
-    cd /d C:\nginx
-    nginx.exe -s reload
+    C:\nginx\nginx.exe -p C:\nginx -s reload
 ) else (
     echo [..] Starting Nginx...
-    cd /d C:\nginx
-    start /B "" nginx.exe >NUL 2>&1
+    pushd C:\nginx
+    start "" /B nginx.exe -p C:\nginx
+    popd
     timeout /t 2 /nobreak >NUL
     tasklist /FI "IMAGENAME eq nginx.exe" 2>NUL | find /I "nginx.exe" >NUL
     if %ERRORLEVEL%==0 (

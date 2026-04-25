@@ -228,7 +228,7 @@ function ManageCategories() {
                       secondary={
                         !category.isDefault && category.createdBy && (
                           <Typography variant="caption" color="text.secondary">
-                            Created by {category.createdBy.name} on {new Date(category.createdAt).toLocaleDateString()}
+                            Created by {category.createdBy.name} on {new Date(category.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                           </Typography>
                         )
                       }

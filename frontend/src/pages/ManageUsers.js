@@ -282,7 +282,7 @@ function ManageUsers() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {new Date(userItem.createdAt).toLocaleDateString()}
+                          {new Date(userItem.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                         </TableCell>
                         <TableCell align="right">
                           <IconButton

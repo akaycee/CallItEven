@@ -11,8 +11,13 @@ echo.
 tasklist /FI "IMAGENAME eq nginx.exe" 2>NUL | find /I "nginx.exe" >NUL
 if %ERRORLEVEL%==0 (
     echo [..] Stopping Nginx...
-    cd /d C:\nginx
-    nginx.exe -s quit
+    C:\nginx\nginx.exe -p C:\nginx -s quit
+    timeout /t 2 /nobreak >NUL
+    :: Force kill if graceful quit didn't work
+    tasklist /FI "IMAGENAME eq nginx.exe" 2>NUL | find /I "nginx.exe" >NUL
+    if %ERRORLEVEL%==0 (
+        taskkill /IM nginx.exe /F >NUL 2>&1
+    )
     echo [OK] Nginx stopped
 ) else (
     echo [--] Nginx is not running

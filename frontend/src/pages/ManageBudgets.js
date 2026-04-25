@@ -659,7 +659,7 @@ function ManageBudgets() {
                                 {expense.paidBy?._id === user._id ? 'Paid by You' : `Paid by ${expense.paidBy?.name}`}
                               </Typography>
                               <Typography variant="caption" display="block" color="text.secondary">
-                                {new Date(expense.createdAt).toLocaleDateString()}
+                                {new Date(expense.createdAt).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                               </Typography>
                             </Box>
                           }

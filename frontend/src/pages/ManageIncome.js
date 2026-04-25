@@ -625,7 +625,7 @@ function ManageIncome({ onDone, isDialog = false }) {
                         secondary={
                           <Box sx={{ mt: 0.5 }}>
                             <Typography variant="body2" color="text.secondary">
-                              {new Date(income.date).toLocaleDateString()} &middot; {income.category}
+                              {new Date(income.date).toLocaleDateString(undefined, { timeZone: 'UTC' })} &middot; {income.category}
                               {income.description && ` \u00B7 ${income.description}`}
                             </Typography>
                           </Box>
