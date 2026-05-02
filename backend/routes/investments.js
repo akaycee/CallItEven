@@ -1,11 +1,13 @@
 const express = require('express');
 const logger = require('../utils/logger');
-const { body, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const Investment = require('../models/Investment');
 const User = require('../models/User');
 const FamilyGroup = require('../models/FamilyGroup');
 const { parsePagination } = require('../utils/helpers');
+const YahooFinance = require('yahoo-finance2').default;
+const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 const router = express.Router();
 
@@ -19,16 +21,12 @@ async function getFamilyMemberIds(userId) {
   return family ? family.members : null;
 }
 
-// @route   POST /api/investments
-// @desc    Create a new investment
+// @route   GET /api/investments/lookup/:symbol
+// @desc    Verify a stock ticker and return quote info
 // @access  Private
-router.post('/', [
+router.get('/lookup/:symbol', [
   protect,
-  body('name').trim().notEmpty().withMessage('Name is required'),
-  body('type').isIn(['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'retirement', 'other']).withMessage('Invalid investment type'),
-  body('purchasePrice').isFloat({ min: 0 }).withMessage('Purchase price must be >= 0'),
-  body('currentValue').isFloat({ min: 0 }).withMessage('Current value must be >= 0'),
-  body('purchaseDate').notEmpty().withMessage('Purchase date is required'),
+  param('symbol').trim().matches(/^[A-Za-z0-9.\-]{1,10}$/).withMessage('Invalid ticker symbol'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -36,7 +34,110 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily } = req.body;
+    const symbol = req.params.symbol.toUpperCase();
+    const quote = await yahooFinance.quote(symbol);
+
+    if (!quote || !quote.regularMarketPrice) {
+      return res.status(404).json({ message: 'Ticker not found' });
+    }
+
+    const result = {
+      symbol: quote.symbol,
+      name: quote.shortName || quote.longName || quote.symbol,
+      price: quote.regularMarketPrice,
+      exchange: quote.fullExchangeName || quote.exchange || '',
+      currency: quote.currency || 'USD',
+    };
+
+    // If a date is provided, fetch historical closing price
+    if (req.query.date) {
+      try {
+        const dateStr = req.query.date;
+        const d = new Date(dateStr);
+        const nextDay = new Date(d);
+        nextDay.setDate(nextDay.getDate() + 5); // window of 5 days to handle weekends/holidays
+        const chart = await yahooFinance.chart(symbol, {
+          period1: dateStr,
+          period2: nextDay.toISOString().split('T')[0],
+          interval: '1d',
+        });
+        if (chart && chart.quotes && chart.quotes.length > 0) {
+          result.historicalPrice = chart.quotes[0].close;
+          result.historicalDate = chart.quotes[0].date;
+        }
+      } catch (histErr) {
+        logger.warn({ err: histErr }, `Historical price lookup failed for ${symbol} on ${req.query.date}`);
+        // Non-fatal: return current price without historical
+      }
+    }
+
+    res.json(result);
+  } catch (error) {
+    logger.error({ err: error }, `Ticker lookup failed for ${req.params.symbol}`);
+    return res.status(404).json({ message: 'Ticker not found' });
+  }
+});
+
+// @route   PUT /api/investments/refresh-prices
+// @desc    Refresh current values for all ticker-based investments
+// @access  Private
+router.put('/refresh-prices', protect, async (req, res) => {
+  try {
+    const investments = await Investment.find({
+      user: req.user._id,
+      ticker: { $ne: null, $exists: true, $nin: [''] }
+    });
+
+    if (investments.length === 0) {
+      return res.json({ updated: 0, investments: [] });
+    }
+
+    const results = await Promise.allSettled(
+      investments.map(async (inv) => {
+        const quote = await yahooFinance.quote(inv.ticker);
+        if (quote && quote.regularMarketPrice) {
+          inv.currentValue = quote.regularMarketPrice;
+          inv.lastPriceUpdate = new Date();
+          await inv.save();
+          return inv;
+        }
+        throw new Error(`No price for ${inv.ticker}`);
+      })
+    );
+
+    const updated = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+    const failed = results.filter(r => r.status === 'rejected').length;
+
+    res.json({
+      updated: updated.length,
+      failed,
+      investments: updated,
+    });
+  } catch (error) {
+    logger.error({ err: error }, error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/investments
+// @desc    Create a new investment
+// @access  Private
+router.post('/', [
+  protect,
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('type').isIn(['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'other']).withMessage('Invalid investment type'),
+  body('purchasePrice').isFloat({ min: 0 }).withMessage('Purchase price must be >= 0'),
+  body('currentValue').isFloat({ min: 0 }).withMessage('Current value must be >= 0'),
+  body('purchaseDate').notEmpty().withMessage('Purchase date is required'),
+  body('ticker').optional({ values: 'null' }).trim().matches(/^[A-Za-z0-9.\-]{1,10}$/).withMessage('Invalid ticker symbol'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily, ticker, account } = req.body;
 
     const investment = await Investment.create({
       user: req.user._id,
@@ -49,7 +150,10 @@ router.post('/', [
       description: description || '',
       tag: tag || '',
       group: group || undefined,
-      hideFromFamily: !!hideFromFamily
+      hideFromFamily: !!hideFromFamily,
+      ticker: ticker || null,
+      lastPriceUpdate: ticker ? new Date() : null,
+      account: account || 'taxable',
     });
 
     res.status(201).json(investment);
@@ -78,6 +182,10 @@ router.get('/', protect, async (req, res) => {
 
     if (req.query.type) {
       filter.type = req.query.type;
+    }
+
+    if (req.query.account) {
+      filter.account = req.query.account;
     }
 
     const { page, limit, skip } = parsePagination(req.query);
@@ -190,7 +298,7 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this investment' });
     }
 
-    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily } = req.body;
+    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily, ticker, lastPriceUpdate, account } = req.body;
 
     if (name !== undefined) investment.name = name;
     if (type !== undefined) investment.type = type;
@@ -202,6 +310,9 @@ router.put('/:id', protect, async (req, res) => {
     if (tag !== undefined) investment.tag = tag;
     if (group !== undefined) investment.group = group || undefined;
     if (hideFromFamily !== undefined) investment.hideFromFamily = !!hideFromFamily;
+    if (ticker !== undefined) investment.ticker = ticker || null;
+    if (lastPriceUpdate !== undefined) investment.lastPriceUpdate = lastPriceUpdate;
+    if (account !== undefined) investment.account = account;
 
     await investment.save();
     res.json(investment);

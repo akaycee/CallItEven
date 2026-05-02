@@ -81,20 +81,16 @@ if (Test-Path "C:\nginx\nginx.exe") {
     $fail = $true
 }
 
-# Check frontend build
+# Build frontend (always rebuild to pick up source changes)
+Write-Host "[..] Building frontend..." -ForegroundColor Yellow
+Push-Location "$ProjectDir\frontend"
+npm run build 2>&1 | Out-Null
+Pop-Location
 if (Test-Path "$ProjectDir\frontend\build\index.html") {
-    Write-Host "[OK] Frontend build exists" -ForegroundColor Green
+    Write-Host "[OK] Frontend built successfully" -ForegroundColor Green
 } else {
-    Write-Host "[WARN] Frontend build not found - building..." -ForegroundColor Yellow
-    Push-Location "$ProjectDir\frontend"
-    npm run build 2>&1 | Out-Null
-    Pop-Location
-    if (Test-Path "$ProjectDir\frontend\build\index.html") {
-        Write-Host "[OK] Frontend built successfully" -ForegroundColor Green
-    } else {
-        Write-Host "[FAIL] Frontend build failed" -ForegroundColor Red
-        $fail = $true
-    }
+    Write-Host "[FAIL] Frontend build failed" -ForegroundColor Red
+    $fail = $true
 }
 
 # Check backend .env

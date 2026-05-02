@@ -27,10 +27,8 @@ import {
   Divider,
   CircularProgress,
   Grid,
-  Switch,
-  FormControlLabel,
 } from '@mui/material';
-import { Delete, Add, Edit, TrendingUp, TrendingDown } from '@mui/icons-material';
+import { Delete, Add, Edit, TrendingUp, TrendingDown, Refresh, Search } from '@mui/icons-material';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement } from 'chart.js';
 import axios from 'axios';
@@ -51,12 +49,35 @@ const INVESTMENT_TYPES = [
   { value: 'crypto', label: 'Crypto' },
   { value: 'mutual_fund', label: 'Mutual Fund' },
   { value: 'etf', label: 'ETF' },
-  { value: 'retirement', label: 'Retirement' },
+  { value: 'other', label: 'Other' },
+];
+
+const ACCOUNT_TYPES = [
+  { value: 'taxable', label: 'Taxable Brokerage' },
+  { value: 'roth_ira', label: 'Roth IRA' },
+  { value: 'traditional_ira', label: 'Traditional IRA' },
+  { value: '401k', label: '401k' },
+  { value: 'hsa', label: 'HSA' },
+  { value: '529', label: '529' },
   { value: 'other', label: 'Other' },
 ];
 
 const GRADIENT_BLUE_INDIGO = 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)';
 const GRADIENT_BLUE_INDIGO_HOVER = 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)';
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const then = new Date(dateStr);
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return diffMin + 'm ago';
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr + 'h ago';
+  const diffDay = Math.floor(diffHr / 24);
+  return diffDay + 'd ago';
+}
 
 function ManageInvestments() {
   const navigate = useNavigate();
@@ -71,74 +92,164 @@ function ManageInvestments() {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedInvestment, setSelectedInvestment] = useState(null);
   const [typeFilter, setTypeFilter] = useState('');
+  const [accountFilter, setAccountFilter] = useState('');
   const [viewMode, setViewMode] = useState('personal');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Ticker verification state
+  const [investmentMode, setInvestmentMode] = useState('manual'); // 'ticker' | 'manual'
+  const [tickerInput, setTickerInput] = useState('');
+  const [tickerVerified, setTickerVerified] = useState(false);
+  const [tickerInfo, setTickerInfo] = useState(null); // { symbol, name, price, exchange, currency }
+  const [verifying, setVerifying] = useState(false);
+  const [dialogError, setDialogError] = useState('');
 
   const emptyForm = {
-    name: '', type: 'stocks', purchasePrice: '', currentValue: '',
+    name: '', type: 'stocks', account: 'taxable', purchasePrice: '', currentValue: '',
     quantity: '1', purchaseDate: new Date().toISOString().split('T')[0],
-    description: '', tag: '', hideFromFamily: false,
+    description: '', tag: '', ticker: null,
   };
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     const controller = new AbortController();
-    fetchData(controller.signal);
+    refreshAndFetch(controller.signal);
     return () => controller.abort();
-  }, [user, typeFilter, viewMode]);
+  }, [user, typeFilter, accountFilter, viewMode]);
 
-  const fetchData = async (signal) => {
+  const refreshAndFetch = async (signal) => {
     try {
       setLoading(true);
       setError('');
-      let params = typeFilter ? `?type=${typeFilter}` : '';
-      if (viewMode === 'household') params += (params ? '&' : '?') + 'household=true';
-      const [invRes, sumRes] = await Promise.all([
-        axios.get(`/api/investments${params}`, { signal }),
-        axios.get(`/api/investments/summary${viewMode === 'household' ? '?household=true' : ''}`, { signal }),
-      ]);
-      setInvestments(invRes.data);
-      setSummary(sumRes.data);
+      // Auto-refresh ticker prices on page load
+      try { await axios.put('/api/investments/refresh-prices', null, { signal }); } catch (e) { /* silent */ }
+      await fetchDataOnly(signal);
     } catch (err) {
       if (axios.isCancel(err)) return;
       setError(err.response?.data?.message || 'Failed to load investments');
     } finally { setLoading(false); }
   };
 
+  const fetchDataOnly = async (signal) => {
+    let params = typeFilter ? `?type=${typeFilter}` : '';
+    if (accountFilter) params += (params ? '&' : '?') + `account=${accountFilter}`;
+    if (viewMode === 'household') params += (params ? '&' : '?') + 'household=true';
+    const [invRes, sumRes] = await Promise.all([
+      axios.get(`/api/investments${params}`, { signal }),
+      axios.get(`/api/investments/summary${viewMode === 'household' ? '?household=true' : ''}`, { signal }),
+    ]);
+    setInvestments(invRes.data);
+    setSummary(sumRes.data);
+  };
+
+  const fetchData = async (signal) => {
+    try {
+      setLoading(true);
+      setError('');
+      await fetchDataOnly(signal);
+    } catch (err) {
+      if (axios.isCancel(err)) return;
+      setError(err.response?.data?.message || 'Failed to load investments');
+    } finally { setLoading(false); }
+  };
+
+  const handleRefreshPrices = async () => {
+    try {
+      setRefreshing(true);
+      const res = await axios.put('/api/investments/refresh-prices');
+      await fetchDataOnly();
+      const msg = res.data.failed > 0
+        ? `Updated ${res.data.updated} investments (${res.data.failed} failed)`
+        : `Updated ${res.data.updated} investment prices`;
+      showSuccess(msg);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to refresh prices');
+    } finally { setRefreshing(false); }
+  };
+
+  const handleVerifyTicker = async () => {
+    try {
+      setVerifying(true);
+      setDialogError('');
+      setTickerVerified(false);
+      setTickerInfo(null);
+      const symbol = tickerInput.trim().toUpperCase();
+      if (!symbol) { setDialogError('Enter a ticker symbol'); setVerifying(false); return; }
+      const dateParam = form.purchaseDate ? `?date=${form.purchaseDate}` : '';
+      const res = await axios.get(`/api/investments/lookup/${encodeURIComponent(symbol)}${dateParam}`);
+      setTickerInfo(res.data);
+      setTickerVerified(false); // Not confirmed yet, just fetched
+    } catch (err) {
+      setDialogError(err.response?.data?.message || 'Ticker not found');
+      setTickerInfo(null);
+    } finally { setVerifying(false); }
+  };
+
+  const handleConfirmTicker = () => {
+    if (!tickerInfo) return;
+    setTickerVerified(true);
+    setForm(f => ({
+      ...f,
+      ticker: tickerInfo.symbol,
+      currentValue: tickerInfo.price.toString(),
+      purchasePrice: tickerInfo.historicalPrice != null ? tickerInfo.historicalPrice.toString() : f.purchasePrice,
+      name: f.name || tickerInfo.name,
+    }));
+  };
+
+  const handlePurchaseDateChange = async (newDate) => {
+    setForm(f => ({ ...f, purchaseDate: newDate }));
+    // If ticker is verified, fetch historical price for the new date
+    if (tickerVerified && form.ticker && newDate) {
+      try {
+        const res = await axios.get(`/api/investments/lookup/${encodeURIComponent(form.ticker)}?date=${newDate}`);
+        if (res.data.historicalPrice != null) {
+          setForm(f => ({ ...f, purchasePrice: res.data.historicalPrice.toString() }));
+          setTickerInfo(prev => ({ ...prev, historicalPrice: res.data.historicalPrice, historicalDate: res.data.historicalDate }));
+        }
+      } catch (err) { /* silent - keep existing purchase price */ }
+    }
+  };
+
   const handleAdd = async () => {
     try {
-      setError('');
-      if (!form.name.trim()) { setError('Name is required'); return; }
-      if (!form.purchasePrice || parseFloat(form.purchasePrice) < 0) { setError('Valid purchase price required'); return; }
-      if (!form.currentValue || parseFloat(form.currentValue) < 0) { setError('Valid current value required'); return; }
+      setDialogError('');
+      if (!form.name.trim()) { setDialogError('Name is required'); return; }
+      if (!form.purchasePrice || parseFloat(form.purchasePrice) < 0) { setDialogError('Valid purchase price required'); return; }
+      if (!form.currentValue || parseFloat(form.currentValue) < 0) { setDialogError('Valid current value required'); return; }
+      if (investmentMode === 'ticker' && !tickerVerified) { setDialogError('Please verify the ticker first'); return; }
       await axios.post('/api/investments', {
         ...form,
         purchasePrice: parseFloat(form.purchasePrice),
         currentValue: parseFloat(form.currentValue),
         quantity: parseFloat(form.quantity) || 1,
+        ticker: investmentMode === 'ticker' ? form.ticker : null,
       });
       showSuccess('Investment added!');
       setAddDialog(false);
-      setForm(emptyForm);
+      resetFormState();
       fetchData();
-    } catch (err) { setError(err.response?.data?.message || 'Failed to add investment'); }
+    } catch (err) { setDialogError(err.response?.data?.message || 'Failed to add investment'); }
   };
 
   const handleEdit = async () => {
     try {
-      setError('');
+      setDialogError('');
+      if (investmentMode === 'ticker' && !tickerVerified) { setDialogError('Please verify the ticker first'); return; }
       await axios.put(`/api/investments/${selectedInvestment._id}`, {
         ...form,
         purchasePrice: parseFloat(form.purchasePrice),
         currentValue: parseFloat(form.currentValue),
         quantity: parseFloat(form.quantity) || 1,
+        ticker: investmentMode === 'ticker' ? form.ticker : null,
       });
       showSuccess('Investment updated!');
       setEditDialog(false);
       setSelectedInvestment(null);
-      setForm(emptyForm);
+      resetFormState();
       fetchData();
-    } catch (err) { setError(err.response?.data?.message || 'Failed to update'); }
+    } catch (err) { setDialogError(err.response?.data?.message || 'Failed to update'); }
   };
 
   const handleDelete = async () => {
@@ -153,13 +264,28 @@ function ManageInvestments() {
 
   const openEdit = (inv) => {
     setSelectedInvestment(inv);
+    const hasTicker = !!inv.ticker;
+    setInvestmentMode(hasTicker ? 'ticker' : 'manual');
+    setTickerInput(inv.ticker || '');
+    setTickerVerified(hasTicker);
+    setTickerInfo(hasTicker ? { symbol: inv.ticker, name: inv.name, price: inv.currentValue, exchange: '', currency: 'USD' } : null);
     setForm({
       name: inv.name, type: inv.type,
       purchasePrice: inv.purchasePrice.toString(), currentValue: inv.currentValue.toString(),
       quantity: (inv.quantity || 1).toString(), purchaseDate: inv.purchaseDate?.split('T')[0] || '',
-      description: inv.description || '', tag: inv.tag || '', hideFromFamily: !!inv.hideFromFamily,
+      description: inv.description || '', tag: inv.tag || '',
+      ticker: inv.ticker || null, account: inv.account || 'taxable',
     });
     setEditDialog(true);
+  };
+
+  const resetFormState = () => {
+    setForm(emptyForm);
+    setInvestmentMode('manual');
+    setTickerInput('');
+    setTickerVerified(false);
+    setTickerInfo(null);
+    setDialogError('');
   };
 
   const typeColors = ['#3b82f6','#6366f1','#10b981','#f97316','#ec4899','#06b6d4','#8b5cf6','#ef4444'];
@@ -171,19 +297,140 @@ function ManageInvestments() {
 
   const renderForm = () => (
     <>
+      {dialogError && <Alert severity="error" sx={{ mb: 1 }} onClose={() => setDialogError('')}>{dialogError}</Alert>}
+      {/* Investment Mode Toggle */}
+      <Box sx={{ display: 'flex', gap: 1, mt: 1, mb: 1 }}>
+        <Button
+          variant={investmentMode === 'ticker' ? 'contained' : 'outlined'}
+          size="small"
+          onClick={() => { setInvestmentMode('ticker'); setTickerVerified(false); setTickerInfo(null); setTickerInput(''); }}
+          sx={investmentMode === 'ticker' ? { background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } } : {}}
+        >
+          Stock Ticker
+        </Button>
+        <Button
+          variant={investmentMode === 'manual' ? 'contained' : 'outlined'}
+          size="small"
+          onClick={() => { setInvestmentMode('manual'); setTickerVerified(false); setTickerInfo(null); setTickerInput(''); setForm(f => ({ ...f, ticker: null })); }}
+          sx={investmentMode === 'manual' ? { background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } } : {}}
+        >
+          Manual Account
+        </Button>
+      </Box>
+
+      {/* Ticker Verification Section */}
+      {investmentMode === 'ticker' && (
+        <Box sx={{ mb: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+            <TextField
+              fullWidth
+              label="Ticker Symbol"
+              placeholder="e.g. AAPL"
+              value={tickerInput}
+              onChange={e => { setTickerInput(e.target.value.toUpperCase()); setTickerVerified(false); setTickerInfo(null); }}
+              margin="normal"
+              inputProps={{ style: { textTransform: 'uppercase' } }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleVerifyTicker}
+              disabled={verifying || !tickerInput.trim()}
+              sx={{ mb: 1, minWidth: 100, background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } }}
+              startIcon={verifying ? <CircularProgress size={16} color="inherit" /> : <Search />}
+            >
+              {verifying ? 'Looking up...' : 'Verify'}
+            </Button>
+          </Box>
+
+          {/* Ticker Info Card (shown after lookup, before confirm) */}
+          {tickerInfo && !tickerVerified && (
+            <Card sx={{ mt: 1, mb: 1, background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: 2 }}>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{tickerInfo.name}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {tickerInfo.symbol} {tickerInfo.exchange ? `\u00B7 ${tickerInfo.exchange}` : ''} {tickerInfo.currency ? `\u00B7 ${tickerInfo.currency}` : ''}
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: '#3b82f6', mt: 0.5 }}>
+                  Current: {formatCurrency(tickerInfo.price)}
+                </Typography>
+                {tickerInfo.historicalPrice != null && (
+                  <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: 600 }}>
+                    Purchase date price: {formatCurrency(tickerInfo.historicalPrice)}
+                  </Typography>
+                )}
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleConfirmTicker}
+                  sx={{ mt: 1, background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)', '&:hover': { background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)' } }}
+                >
+                  Confirm Ticker
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Verified badge */}
+          {tickerVerified && tickerInfo && (
+            <Alert severity="success" sx={{ mt: 1, mb: 1 }}>
+              Verified: {tickerInfo.name} ({tickerInfo.symbol}) @ {formatCurrency(tickerInfo.price)}
+              {tickerInfo.historicalPrice != null && ` | Purchase date: ${formatCurrency(tickerInfo.historicalPrice)}`}
+            </Alert>
+          )}
+        </Box>
+      )}
+
       <TextField fullWidth label="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required margin="normal" />
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Type</InputLabel>
-        <Select value={form.type} label="Type" onChange={e => setForm({...form, type: e.target.value})}>
-          {INVESTMENT_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
-        </Select>
-      </FormControl>
       <Grid container spacing={2}>
         <Grid item xs={6}>
-          <TextField fullWidth label="Purchase Price" type="number" value={form.purchasePrice} onChange={e => setForm({...form, purchasePrice: e.target.value})} margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} inputProps={{ step: '0.01', min: '0' }} />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Type</InputLabel>
+            <Select value={form.type} label="Type" onChange={e => setForm({...form, type: e.target.value})}>
+              {INVESTMENT_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+            </Select>
+          </FormControl>
         </Grid>
         <Grid item xs={6}>
-          <TextField fullWidth label="Current Value" type="number" value={form.currentValue} onChange={e => setForm({...form, currentValue: e.target.value})} margin="normal" InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} inputProps={{ step: '0.01', min: '0' }} />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Account</InputLabel>
+            <Select value={form.account} label="Account" onChange={e => setForm({...form, account: e.target.value})}>
+              {ACCOUNT_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </Grid>
+      </Grid>
+      <Grid container spacing={2}>
+        <Grid item xs={6}>
+          <TextField
+            fullWidth
+            label="Purchase Price"
+            type="number"
+            value={form.purchasePrice}
+            onChange={e => { if (investmentMode !== 'ticker' || !tickerVerified) setForm({...form, purchasePrice: e.target.value}); }}
+            margin="normal"
+            InputProps={{
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              readOnly: investmentMode === 'ticker' && tickerVerified,
+            }}
+            inputProps={{ step: '0.01', min: '0' }}
+            helperText={investmentMode === 'ticker' && tickerVerified ? 'Auto-filled from purchase date' : ''}
+          />
+        </Grid>
+        <Grid item xs={6}>
+          <TextField
+            fullWidth
+            label="Current Value"
+            type="number"
+            value={form.currentValue}
+            onChange={e => { if (investmentMode !== 'ticker' || !tickerVerified) setForm({...form, currentValue: e.target.value}); }}
+            margin="normal"
+            InputProps={{
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              readOnly: investmentMode === 'ticker' && tickerVerified,
+            }}
+            inputProps={{ step: '0.01', min: '0' }}
+            helperText={investmentMode === 'ticker' && tickerVerified ? 'Auto-filled from ticker price' : ''}
+          />
         </Grid>
       </Grid>
       <Grid container spacing={2}>
@@ -191,12 +438,11 @@ function ManageInvestments() {
           <TextField fullWidth label="Quantity" type="number" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} margin="normal" inputProps={{ step: '1', min: '0' }} />
         </Grid>
         <Grid item xs={6}>
-          <TextField fullWidth label="Purchase Date" type="date" value={form.purchaseDate} onChange={e => setForm({...form, purchaseDate: e.target.value})} margin="normal" InputLabelProps={{ shrink: true }} />
+          <TextField fullWidth label="Purchase Date" type="date" value={form.purchaseDate} onChange={e => handlePurchaseDateChange(e.target.value)} margin="normal" InputLabelProps={{ shrink: true }} />
         </Grid>
       </Grid>
       <TextField fullWidth label="Description" value={form.description} onChange={e => setForm({...form, description: e.target.value})} margin="normal" multiline rows={2} />
       <TextField fullWidth label="Tag" value={form.tag} onChange={e => setForm({...form, tag: e.target.value})} margin="normal" />
-      <FormControlLabel control={<Switch checked={form.hideFromFamily} onChange={e => setForm({...form, hideFromFamily: e.target.checked})} />} label="Hide from Family" sx={{ mt: 1 }} />
     </>
   );
 
@@ -257,16 +503,36 @@ function ManageInvestments() {
 
         {/* Filters & Add button */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Type</InputLabel>
-            <Select value={typeFilter} label="Type" onChange={e => setTypeFilter(e.target.value)}>
-              <MenuItem value="">All Types</MenuItem>
-              {INVESTMENT_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
-            </Select>
-          </FormControl>
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setForm(emptyForm); setAddDialog(true); }} sx={{ background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } }}>
-            Add Investment
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Type</InputLabel>
+              <Select value={typeFilter} label="Type" onChange={e => setTypeFilter(e.target.value)}>
+                <MenuItem value="">All Types</MenuItem>
+                {INVESTMENT_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Account</InputLabel>
+              <Select value={accountFilter} label="Account" onChange={e => setAccountFilter(e.target.value)}>
+                <MenuItem value="">All Accounts</MenuItem>
+                {ACCOUNT_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={refreshing ? <CircularProgress size={16} /> : <Refresh />}
+              onClick={handleRefreshPrices}
+              disabled={refreshing}
+              size="small"
+            >
+              Refresh Prices
+            </Button>
+            <Button variant="contained" startIcon={<Add />} onClick={() => { resetFormState(); setAddDialog(true); }} sx={{ background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } }}>
+              Add Investment
+            </Button>
+          </Box>
         </Box>
 
         {/* Investment List */}
@@ -279,6 +545,7 @@ function ManageInvestments() {
             {investments.map((inv, idx) => {
               const gainLoss = (inv.currentValue - inv.purchasePrice) * (inv.quantity || 1);
               const gainPct = inv.purchasePrice > 0 ? ((inv.currentValue - inv.purchasePrice) / inv.purchasePrice * 100) : 0;
+              const hasTicker = !!inv.ticker;
               return (
                 <React.Fragment key={inv._id}>
                   {idx > 0 && <Divider />}
@@ -291,8 +558,8 @@ function ManageInvestments() {
                     }
                   >
                     <ListItemText
-                      primary={<Box display="flex" alignItems="center" gap={1}><Typography fontWeight={600}>{inv.name}</Typography><Chip label={INVESTMENT_TYPES.find(t => t.value === inv.type)?.label || inv.type} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }} />{inv.tag && <Chip label={inv.tag} size="small" variant="outlined" />}</Box>}
-                      secondary={<Box><Typography variant="body2" component="span">Buy: {formatCurrency(inv.purchasePrice)} × {inv.quantity || 1} = {formatCurrency(inv.purchasePrice * (inv.quantity || 1))} → Now: {formatCurrency(inv.currentValue * (inv.quantity || 1))}</Typography><Typography variant="body2" sx={{ color: gainLoss >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}> {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainPct.toFixed(1)}%)</Typography></Box>}
+                      primary={<Box display="flex" alignItems="center" gap={1} flexWrap="wrap"><Typography fontWeight={600}>{inv.name}</Typography>{hasTicker && <Chip label={inv.ticker} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 600 }} />}{!hasTicker && <Chip label="Manual" size="small" sx={{ bgcolor: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6' }} />}<Chip label={INVESTMENT_TYPES.find(t => t.value === inv.type)?.label || inv.type} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }} /><Chip label={ACCOUNT_TYPES.find(a => a.value === inv.account)?.label || inv.account || 'Taxable'} size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }} />{inv.tag && <Chip label={inv.tag} size="small" variant="outlined" />}</Box>}
+                      secondary={<Box><Typography variant="body2" component="span">Buy: {formatCurrency(inv.purchasePrice)} {'\u00D7'} {inv.quantity || 1} = {formatCurrency(inv.purchasePrice * (inv.quantity || 1))} {'\u2192'} Now: {formatCurrency(inv.currentValue * (inv.quantity || 1))}</Typography><Typography variant="body2" sx={{ color: gainLoss >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}> {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainPct.toFixed(1)}%)</Typography>{hasTicker && inv.lastPriceUpdate && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Price updated {formatTimeAgo(inv.lastPriceUpdate)}</Typography>}</Box>}
                     />
                   </ListItem>
                 </React.Fragment>
@@ -305,22 +572,22 @@ function ManageInvestments() {
       <BottomBar />
 
       {/* Add Dialog */}
-      <Dialog open={addDialog} onClose={() => setAddDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, background: cardBg.purpleTeal ? cardBg.purpleTeal(theme.palette.mode) : undefined, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)' } }}>
+      <Dialog open={addDialog} onClose={() => { setAddDialog(false); resetFormState(); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, background: cardBg.purpleTeal ? cardBg.purpleTeal(theme.palette.mode) : undefined, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)' } }}>
         <DialogTitle sx={{ fontWeight: 700, ...gradientText(GRADIENT_BLUE_INDIGO) }}>Add Investment</DialogTitle>
         <DialogContent>{renderForm()}</DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setAddDialog(false)}>Cancel</Button>
-          <Button onClick={handleAdd} variant="contained" sx={{ background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } }}>Add</Button>
+          <Button onClick={() => { setAddDialog(false); resetFormState(); }}>Cancel</Button>
+          <Button onClick={handleAdd} variant="contained" disabled={investmentMode === 'ticker' && !tickerVerified} sx={{ background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } }}>Add</Button>
         </DialogActions>
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, background: cardBg.purpleTeal ? cardBg.purpleTeal(theme.palette.mode) : undefined, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)' } }}>
+      <Dialog open={editDialog} onClose={() => { setEditDialog(false); resetFormState(); }} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, background: cardBg.purpleTeal ? cardBg.purpleTeal(theme.palette.mode) : undefined, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30,30,30,0.98)' : 'rgba(255,255,255,0.98)', backdropFilter: 'blur(20px)' } }}>
         <DialogTitle sx={{ fontWeight: 700, ...gradientText(GRADIENT_BLUE_INDIGO) }}>Edit Investment</DialogTitle>
         <DialogContent>{renderForm()}</DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setEditDialog(false)}>Cancel</Button>
-          <Button onClick={handleEdit} variant="contained" sx={{ background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } }}>Save</Button>
+          <Button onClick={() => { setEditDialog(false); resetFormState(); }}>Cancel</Button>
+          <Button onClick={handleEdit} variant="contained" disabled={investmentMode === 'ticker' && !tickerVerified} sx={{ background: GRADIENT_BLUE_INDIGO, '&:hover': { background: GRADIENT_BLUE_INDIGO_HOVER } }}>Save</Button>
         </DialogActions>
       </Dialog>
 

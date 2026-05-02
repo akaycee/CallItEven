@@ -13,8 +13,13 @@ const investmentSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'retirement', 'other'],
+    enum: ['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'other'],
     required: true
+  },
+  account: {
+    type: String,
+    enum: ['taxable', 'roth_ira', 'traditional_ira', '401k', 'hsa', '529', 'other'],
+    default: 'taxable'
   },
   purchasePrice: {
     type: Number,
@@ -52,6 +57,16 @@ const investmentSchema = new mongoose.Schema({
   hideFromFamily: {
     type: Boolean,
     default: false
+  },
+  ticker: {
+    type: String,
+    trim: true,
+    uppercase: true,
+    default: null
+  },
+  lastPriceUpdate: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true,

@@ -33,6 +33,11 @@ A modern expense splitting, personal budgeting, and income tracking web applicat
   - Summary cards for total income, total expenses, and net savings
   - Date range filters (month, quarter, year, custom) and group filtering
 - **Investments** - Track investment accounts with current values
+  - **Stock Ticker Mode** - Enter a ticker symbol (e.g., AAPL), verify company name and price via Yahoo Finance, then save with auto-filled current value
+  - **Manual Account Mode** - For automated accounts (401k, etc.) with no ticker; manually update the current value
+  - **Auto Price Refresh** - Ticker-based investments refresh prices on page load and via a manual Refresh Prices button
+  - Portfolio summary with total invested, current value, and gain/loss
+  - Doughnut chart breakdown by investment type
 - **Savings Goals** - Set and track progress toward savings targets
 - **Family Groups** - Create a family, invite members, and view household-wide finances
   - **Household Mode** - Toggle between personal and household views on Dashboard and Cash Flow
@@ -248,6 +253,16 @@ sudo systemctl stop nginx
 - `PUT /api/income/:id` - Update income entry
 - `DELETE /api/income/:id` - Delete income entry
 
+### Investments
+- `POST /api/investments` - Create a new investment (supports optional `ticker` field)
+- `GET /api/investments` - Get all investments (supports `?household=true`, `?type=...`)
+- `GET /api/investments/summary` - Get portfolio summary (totals, gain/loss, by-type breakdown)
+- `GET /api/investments/lookup/:symbol` - Verify a stock ticker via Yahoo Finance (returns name, price, exchange)
+- `PUT /api/investments/refresh-prices` - Refresh current values for all ticker-based investments
+- `GET /api/investments/:id` - Get single investment
+- `PUT /api/investments/:id` - Update investment (supports `ticker` field)
+- `DELETE /api/investments/:id` - Delete investment
+
 ### Cash Flow
 - `GET /api/cashflow` - Get aggregated cash flow data (income by source, expenses by category, monthly breakdown, totals)
 
@@ -369,6 +384,7 @@ npm run test:watch
   - Groups: CRUD, pending invites for unknown emails, creator-only permissions
   - Budgets: CRUD, category validation, owner-only access, monthly summary with personal + shared expense aggregation
   - Income: CRUD, recurring income creation/validation, date-range filtering, recurrence expansion, group validation, authorization
+  - Investments: CRUD, ticker lookup (valid/invalid/auth), refresh-prices (updates ticker investments, skips manual, handles partial failures), create/update with ticker field
   - Cash Flow: aggregation accuracy, recurring income expansion, user expense share calculation, settlement exclusion, date-range filtering
   - Admin: user management, cascade delete, platform stats
 
