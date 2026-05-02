@@ -117,6 +117,7 @@ function Dashboard() {
   const [showPartialCelebration, setShowPartialCelebration] = useState(false);
   const [expenseTypeFilter, setExpenseTypeFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [budgetSummary, setBudgetSummary] = useState([]);
 
   const fetchBudgetSummary = async (signal) => {
@@ -300,11 +301,6 @@ function Dashboard() {
         return;
       }
 
-      if (amount > balance.amount) {
-        setEvenUpError(`Amount cannot exceed ${formatCurrency(balance.amount)}`);
-        return;
-      }
-
       // Create a settlement expense
       // The person who owes money is making the payment (paidBy)
       // They owe $0 after paying, the other person owes the full amount
@@ -410,10 +406,19 @@ function Dashboard() {
 
       // Tag filter
       const matchesTag = !tagFilter || (expense.tag && expense.tag.toLowerCase().includes(tagFilter.toLowerCase()));
+
+      // Search filter
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || (
+        (expense.description && expense.description.toLowerCase().includes(q)) ||
+        (expense.category && expense.category.toLowerCase().includes(q)) ||
+        (expense.totalAmount && expense.totalAmount.toString().includes(q)) ||
+        (expense.paidBy?.name && expense.paidBy.name.toLowerCase().includes(q))
+      );
       
-      return isInDateRange && isNotSettlement && matchesType && matchesTag;
+      return isInDateRange && isNotSettlement && matchesType && matchesTag && matchesSearch;
     });
-  }, [expenses, dateFilter, customStartDate, customEndDate, expenseTypeFilter, tagFilter]);
+  }, [expenses, dateFilter, customStartDate, customEndDate, expenseTypeFilter, tagFilter, searchQuery]);
 
   const filteredActivity = useMemo(() => {
     const _range = getDateRange(dateFilter, customStartDate, customEndDate);
@@ -423,16 +428,25 @@ function Dashboard() {
       const expenseDate = new Date(expense.date || expense.createdAt);
       const isInDateRange = expenseDate >= startDate && expenseDate <= endDate;
       const isSettlement = expense.category?.startsWith('Settlement');
+
+      // Search filter
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || (
+        (expense.description && expense.description.toLowerCase().includes(q)) ||
+        (expense.category && expense.category.toLowerCase().includes(q)) ||
+        (expense.totalAmount && expense.totalAmount.toString().includes(q)) ||
+        (expense.paidBy?.name && expense.paidBy.name.toLowerCase().includes(q))
+      );
       
       if (activityFilter === 'expenses') {
-        return isInDateRange && !isSettlement;
+        return isInDateRange && !isSettlement && matchesSearch;
       } else if (activityFilter === 'settlements') {
-        return isInDateRange && isSettlement;
+        return isInDateRange && isSettlement && matchesSearch;
       } else {
-        return isInDateRange; // 'all' - show everything
+        return isInDateRange && matchesSearch; // 'all' - show everything
       }
     });
-  }, [expenses, dateFilter, customStartDate, customEndDate, activityFilter]);
+  }, [expenses, dateFilter, customStartDate, customEndDate, activityFilter, searchQuery]);
 
   // Stable callbacks for memoized child props
   const handleDateFilterChange = useCallback((e) => setDateFilter(e.target.value), []);
@@ -878,6 +892,16 @@ function Dashboard() {
                 sx: { fontSize: '0.85rem' },
               }}
             />
+            <TextField
+              size="small"
+              placeholder="Search expenses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ minWidth: { xs: '100%', sm: 200 } }}
+              InputProps={{
+                sx: { fontSize: '0.85rem' },
+              }}
+            />
           </Box>
 
           <ExpenseSummaryCard
@@ -1286,23 +1310,37 @@ function Dashboard() {
             </DialogContent>
             <DialogActions>
               {selectedExpense.createdBy._id === user._id && (
-                <Button 
-                  onClick={() => {
-                    navigate(`/expenses/edit/${selectedExpense._id}`);
-                    setSelectedExpense(null);
-                  }}
-                  startIcon={<Edit />}
-                  variant="contained"
-                  sx={{
-                    background: GRADIENT_ORANGE_PURPLE,
-                    color: 'white',
-                    '&:hover': {
-                      background: GRADIENT_ORANGE_PURPLE_HOVER,
-                    },
-                  }}
-                >
-                  Edit
-                </Button>
+                <>
+                  <Button 
+                    onClick={() => {
+                      navigate(`/expenses/edit/${selectedExpense._id}`);
+                      setSelectedExpense(null);
+                    }}
+                    startIcon={<Edit />}
+                    variant="contained"
+                    sx={{
+                      background: GRADIENT_ORANGE_PURPLE,
+                      color: 'white',
+                      '&:hover': {
+                        background: GRADIENT_ORANGE_PURPLE_HOVER,
+                      },
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setExpenseToDelete(selectedExpense._id);
+                      setSelectedExpense(null);
+                      setDeleteDialog(true);
+                    }}
+                    startIcon={<Delete />}
+                    color="error"
+                    variant="outlined"
+                  >
+                    Delete
+                  </Button>
+                </>
               )}
               <Button onClick={() => setSelectedExpense(null)}>Close</Button>
             </DialogActions>
@@ -1517,12 +1555,38 @@ function Dashboard() {
                 onChange={(e) => setEvenUpAmount(e.target.value)}
                 inputProps={{
                   min: 0.01,
-                  max: balances.find(b => b.user._id === selectedUser._id).amount,
                   step: 0.01,
                 }}
-                helperText={`Enter amount between $0.01 and ${formatCurrency(balances.find(b => b.user._id === selectedUser._id).amount)}`}
-                sx={{ mb: 2 }}
+                sx={{ mb: 1 }}
               />
+              {(() => {
+                const bal = balances.find(b => b.user._id === selectedUser._id);
+                const amt = parseFloat(evenUpAmount) || 0;
+                if (amt <= 0) return null;
+                if (amt < bal.amount) {
+                  return (
+                    <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                      Partial settlement. {formatCurrency(bal.amount - amt)} remaining.
+                    </Typography>
+                  );
+                } else if (amt === bal.amount) {
+                  return (
+                    <Typography variant="body2" sx={{ mb: 2, color: '#10b981', fontWeight: 600 }}>
+                      Full settlement! Balance will be $0.00
+                    </Typography>
+                  );
+                } else {
+                  const excess = amt - bal.amount;
+                  const flipMsg = bal.type === 'you_owe'
+                    ? `${selectedUser.name} will owe you ${formatCurrency(excess)}`
+                    : `You will owe ${selectedUser.name} ${formatCurrency(excess)}`;
+                  return (
+                    <Typography variant="body2" sx={{ mb: 2, color: '#f97316', fontWeight: 600 }}>
+                      Overpayment: {flipMsg} after this.
+                    </Typography>
+                  );
+                }
+              })()}
               <FormControl fullWidth>
                 <InputLabel>Payment Method</InputLabel>
                 <Select

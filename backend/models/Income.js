@@ -6,6 +6,11 @@ const incomeSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  onBehalfOf: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   source: {
     type: String,
     required: true,

@@ -52,7 +52,7 @@ import HouseholdToggle from '../components/HouseholdToggle';
 function ManageIncome({ onDone, isDialog = false }) {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { user } = useContext(AuthContext);
+  const { user, familyGroup } = useContext(AuthContext);
   const [incomes, setIncomes] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +78,7 @@ function ManageIncome({ onDone, isDialog = false }) {
     isRecurring: false,
     recurrenceFrequency: 'monthly',
     recurrenceEndDate: '',
+    onBehalfOf: '',
   };
   const [form, setForm] = useState(emptyForm);
 
@@ -140,6 +141,7 @@ function ManageIncome({ onDone, isDialog = false }) {
         group: form.group || undefined,
         tag: form.tag || '',
         isRecurring: form.isRecurring,
+        onBehalfOf: form.onBehalfOf || undefined,
       };
       if (form.isRecurring) {
         payload.recurrence = {
@@ -173,6 +175,7 @@ function ManageIncome({ onDone, isDialog = false }) {
       recurrenceEndDate: income.recurrence?.endDate
         ? new Date(income.recurrence.endDate).toISOString().split('T')[0]
         : '',
+      onBehalfOf: income.onBehalfOf || income.user || '',
     });
     setEditDialog(true);
   };
@@ -198,6 +201,7 @@ function ManageIncome({ onDone, isDialog = false }) {
         group: form.group || undefined,
         tag: form.tag || '',
         isRecurring: form.isRecurring,
+        onBehalfOf: form.onBehalfOf || undefined,
       };
       if (form.isRecurring) {
         payload.recurrence = {
@@ -246,6 +250,22 @@ function ManageIncome({ onDone, isDialog = false }) {
 
   const renderIncomeForm = () => (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+      {familyGroup && familyGroup.members && familyGroup.members.length > 1 && (
+        <FormControl fullWidth>
+          <InputLabel>Income For</InputLabel>
+          <Select
+            value={form.onBehalfOf || user._id}
+            label="Income For"
+            onChange={(e) => setForm({ ...form, onBehalfOf: e.target.value })}
+          >
+            {familyGroup.members.map(m => (
+              <MenuItem key={m._id} value={m._id}>
+                {m._id === user._id ? `${m.name} (Me)` : m.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
       <TextField
         label="Source"
         value={form.source}
@@ -627,6 +647,14 @@ function ManageIncome({ onDone, isDialog = false }) {
                             <Typography variant="body2" color="text.secondary">
                               {new Date(income.date).toLocaleDateString(undefined, { timeZone: 'UTC' })} &middot; {income.category}
                               {income.description && ` \u00B7 ${income.description}`}
+                              {income.onBehalfOf && familyGroup && (() => {
+                                const member = familyGroup.members.find(m => m._id === income.onBehalfOf || m._id === income.user);
+                                return member && member._id !== user._id ? ` \u00B7 For ${member.name}` : '';
+                              })()}
+                              {!income.onBehalfOf && income.user && income.user !== user._id && familyGroup && (() => {
+                                const member = familyGroup.members.find(m => m._id === income.user);
+                                return member ? ` \u00B7 ${member.name}` : '';
+                              })()}
                             </Typography>
                           </Box>
                         }

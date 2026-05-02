@@ -12,7 +12,10 @@ const DEFAULT_CATEGORIES = [
   'Healthcare',
   'Travel',
   'Housing',
-  'Other'
+  'Other',
+  'Settlement - Cash',
+  'Settlement - Zelle',
+  'Settlement - Venmo'
 ];
 
 module.exports = { DEFAULT_CATEGORIES };

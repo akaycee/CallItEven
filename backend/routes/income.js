@@ -29,7 +29,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { source, amount, date, description, category, group, isRecurring, recurrence, tag } = req.body;
+    const { source, amount, date, description, category, group, isRecurring, recurrence, tag, onBehalfOf } = req.body;
 
     // If group is specified, validate membership
     if (group) {
@@ -42,13 +42,26 @@ router.post('/', [
       }
     }
 
+    // If onBehalfOf is specified, validate it's a family member
+    if (onBehalfOf && onBehalfOf !== req.user._id.toString()) {
+      const currentUser = await User.findById(req.user._id).select('familyGroup').lean();
+      if (!currentUser?.familyGroup) {
+        return res.status(400).json({ message: 'You must be in a family group to add income for others' });
+      }
+      const family = await FamilyGroup.findById(currentUser.familyGroup).lean();
+      if (!family || !family.members.some(m => m.toString() === onBehalfOf)) {
+        return res.status(400).json({ message: 'Selected person is not in your family group' });
+      }
+    }
+
     // Validate recurrence
     if (isRecurring && (!recurrence || !recurrence.frequency)) {
       return res.status(400).json({ message: 'Recurrence frequency is required for recurring income' });
     }
 
     const income = await Income.create({
-      user: req.user._id,
+      user: onBehalfOf || req.user._id,
+      onBehalfOf: onBehalfOf && onBehalfOf !== req.user._id.toString() ? onBehalfOf : null,
       source,
       amount,
       date: new Date(date),
@@ -137,7 +150,22 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Income not found' });
     }
 
-    if (!income.user.equals(req.user._id)) {
+    // Allow access if user owns it OR created it on behalf of a family member
+    const isOwner = income.user.equals(req.user._id);
+    const isCreator = income.onBehalfOf && !income.onBehalfOf.equals(req.user._id);
+    // For entries created on behalf: the creator is req.user, the user field is the family member
+    // We need to check if req.user is in the same family
+    let isFamilyCreator = false;
+    if (!isOwner && income.onBehalfOf) {
+      const currentUser = await User.findById(req.user._id).select('familyGroup').lean();
+      if (currentUser?.familyGroup) {
+        const family = await FamilyGroup.findById(currentUser.familyGroup).lean();
+        if (family && family.members.some(m => m.toString() === req.user._id.toString()) && family.members.some(m => m.toString() === income.user.toString())) {
+          isFamilyCreator = true;
+        }
+      }
+    }
+    if (!isOwner && !isFamilyCreator) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
@@ -171,11 +199,23 @@ router.put('/:id', [
       return res.status(404).json({ message: 'Income not found' });
     }
 
-    if (!income.user.equals(req.user._id)) {
+    // Allow update if user owns it OR is a family member who can manage it
+    const isOwner = income.user.equals(req.user._id);
+    let isFamilyCreator = false;
+    if (!isOwner) {
+      const currentUser = await User.findById(req.user._id).select('familyGroup').lean();
+      if (currentUser?.familyGroup) {
+        const family = await FamilyGroup.findById(currentUser.familyGroup).lean();
+        if (family && family.members.some(m => m.toString() === req.user._id.toString()) && family.members.some(m => m.toString() === income.user.toString())) {
+          isFamilyCreator = true;
+        }
+      }
+    }
+    if (!isOwner && !isFamilyCreator) {
       return res.status(403).json({ message: 'Not authorized to update this income' });
     }
 
-    const { source, amount, date, description, category, group, isRecurring, recurrence, tag } = req.body;
+    const { source, amount, date, description, category, group, isRecurring, recurrence, tag, onBehalfOf } = req.body;
 
     if (source !== undefined) income.source = source;
     if (amount !== undefined) income.amount = amount;
@@ -184,6 +224,10 @@ router.put('/:id', [
     if (category !== undefined) income.category = category;
     if (group !== undefined) income.group = group || undefined;
     if (tag !== undefined) income.tag = tag;
+    if (onBehalfOf !== undefined) {
+      income.user = onBehalfOf || req.user._id;
+      income.onBehalfOf = onBehalfOf && onBehalfOf !== req.user._id.toString() ? onBehalfOf : null;
+    }
     if (isRecurring !== undefined) {
       income.isRecurring = isRecurring;
       if (isRecurring && recurrence) {
@@ -215,7 +259,19 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Income not found' });
     }
 
-    if (!income.user.equals(req.user._id)) {
+    // Allow delete if user owns it OR is a family member
+    const isOwnerDel = income.user.equals(req.user._id);
+    let isFamilyDel = false;
+    if (!isOwnerDel) {
+      const currentUser = await User.findById(req.user._id).select('familyGroup').lean();
+      if (currentUser?.familyGroup) {
+        const family = await FamilyGroup.findById(currentUser.familyGroup).lean();
+        if (family && family.members.some(m => m.toString() === req.user._id.toString()) && family.members.some(m => m.toString() === income.user.toString())) {
+          isFamilyDel = true;
+        }
+      }
+    }
+    if (!isOwnerDel && !isFamilyDel) {
       return res.status(403).json({ message: 'Not authorized to delete this income' });
     }
 
