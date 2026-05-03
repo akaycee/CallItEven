@@ -62,6 +62,7 @@ A modern expense splitting, personal budgeting, and income tracking web applicat
 - MongoDB with Mongoose
 - JWT Authentication
 - bcryptjs for password hashing
+- yahoo-finance2 for real-time stock price lookups
 
 ## Prerequisites
 

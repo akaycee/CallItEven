@@ -13,8 +13,23 @@ const investmentSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'other'],
+    enum: ['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'savings_account', 'espp', 'other'],
     required: true
+  },
+  interestRate: {
+    type: Number,
+    min: 0,
+    default: null
+  },
+  esppDiscount: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: null
+  },
+  offeringDate: {
+    type: Date,
+    default: null
   },
   account: {
     type: String,

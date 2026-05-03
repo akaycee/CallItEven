@@ -125,7 +125,7 @@ router.put('/refresh-prices', protect, async (req, res) => {
 router.post('/', [
   protect,
   body('name').trim().notEmpty().withMessage('Name is required'),
-  body('type').isIn(['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'other']).withMessage('Invalid investment type'),
+  body('type').isIn(['stocks', 'bonds', 'real_estate', 'crypto', 'mutual_fund', 'etf', 'savings_account', 'espp', 'other']).withMessage('Invalid investment type'),
   body('purchasePrice').isFloat({ min: 0 }).withMessage('Purchase price must be >= 0'),
   body('currentValue').isFloat({ min: 0 }).withMessage('Current value must be >= 0'),
   body('purchaseDate').notEmpty().withMessage('Purchase date is required'),
@@ -137,7 +137,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily, ticker, account } = req.body;
+    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily, ticker, account, interestRate, offeringDate, esppDiscount } = req.body;
 
     const investment = await Investment.create({
       user: req.user._id,
@@ -154,6 +154,9 @@ router.post('/', [
       ticker: ticker || null,
       lastPriceUpdate: ticker ? new Date() : null,
       account: account || 'taxable',
+      interestRate: interestRate != null ? interestRate : null,
+      offeringDate: offeringDate ? new Date(offeringDate) : null,
+      esppDiscount: esppDiscount != null ? esppDiscount : null,
     });
 
     res.status(201).json(investment);
@@ -298,7 +301,7 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this investment' });
     }
 
-    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily, ticker, lastPriceUpdate, account } = req.body;
+    const { name, type, purchasePrice, currentValue, quantity, purchaseDate, description, tag, group, hideFromFamily, ticker, lastPriceUpdate, account, interestRate, offeringDate, esppDiscount } = req.body;
 
     if (name !== undefined) investment.name = name;
     if (type !== undefined) investment.type = type;
@@ -313,6 +316,9 @@ router.put('/:id', protect, async (req, res) => {
     if (ticker !== undefined) investment.ticker = ticker || null;
     if (lastPriceUpdate !== undefined) investment.lastPriceUpdate = lastPriceUpdate;
     if (account !== undefined) investment.account = account;
+    if (interestRate !== undefined) investment.interestRate = interestRate;
+    if (offeringDate !== undefined) investment.offeringDate = offeringDate ? new Date(offeringDate) : null;
+    if (esppDiscount !== undefined) investment.esppDiscount = esppDiscount;
 
     await investment.save();
     res.json(investment);

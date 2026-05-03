@@ -27,10 +27,12 @@ import {
   Divider,
   CircularProgress,
   Grid,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import { Delete, Add, Edit, TrendingUp, TrendingDown, Refresh, Search } from '@mui/icons-material';
 import { Doughnut } from 'react-chartjs-2';
-import { Chart, ArcElement } from 'chart.js';
+import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNotification } from '../hooks/useNotification';
@@ -40,7 +42,7 @@ import BottomBar from '../components/BottomBar';
 import HouseholdToggle from '../components/HouseholdToggle';
 import { cardBg, gradientText } from '../utils/themeConstants';
 
-Chart.register(ArcElement);
+Chart.register(ArcElement, Tooltip, Legend);
 
 const INVESTMENT_TYPES = [
   { value: 'stocks', label: 'Stocks' },
@@ -49,6 +51,8 @@ const INVESTMENT_TYPES = [
   { value: 'crypto', label: 'Crypto' },
   { value: 'mutual_fund', label: 'Mutual Fund' },
   { value: 'etf', label: 'ETF' },
+  { value: 'savings_account', label: 'Savings Account' },
+  { value: 'espp', label: 'ESPP' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -79,6 +83,31 @@ function formatTimeAgo(dateStr) {
   return diffDay + 'd ago';
 }
 
+function getEsppQualification(inv) {
+  if (inv.type !== 'espp') return null;
+  const now = new Date();
+  const purchaseDate = new Date(inv.purchaseDate);
+  const offeringDate = inv.offeringDate ? new Date(inv.offeringDate) : null;
+
+  const oneYearFromPurchase = new Date(purchaseDate);
+  oneYearFromPurchase.setFullYear(oneYearFromPurchase.getFullYear() + 1);
+
+  const twoYearsFromOffering = offeringDate ? new Date(offeringDate) : null;
+  if (twoYearsFromOffering) twoYearsFromOffering.setFullYear(twoYearsFromOffering.getFullYear() + 2);
+
+  const purchaseQualified = now >= oneYearFromPurchase;
+  const offeringQualified = !twoYearsFromOffering || now >= twoYearsFromOffering;
+
+  if (purchaseQualified && offeringQualified) {
+    return { status: 'qualified', color: '#10b981', label: 'Qualified Disposition' };
+  }
+
+  const qualDate = !twoYearsFromOffering ? oneYearFromPurchase
+    : oneYearFromPurchase > twoYearsFromOffering ? oneYearFromPurchase : twoYearsFromOffering;
+  const daysLeft = Math.ceil((qualDate - now) / (1000 * 60 * 60 * 24));
+  return { status: 'disqualifying', color: '#f97316', label: `Disqualifying (${daysLeft}d until qualified)` };
+}
+
 function ManageInvestments() {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -95,6 +124,7 @@ function ManageInvestments() {
   const [accountFilter, setAccountFilter] = useState('');
   const [viewMode, setViewMode] = useState('personal');
   const [refreshing, setRefreshing] = useState(false);
+  const [chartGroupBy, setChartGroupBy] = useState('type');
 
   // Ticker verification state
   const [investmentMode, setInvestmentMode] = useState('manual'); // 'ticker' | 'manual'
@@ -107,7 +137,7 @@ function ManageInvestments() {
   const emptyForm = {
     name: '', type: 'stocks', account: 'taxable', purchasePrice: '', currentValue: '',
     quantity: '1', purchaseDate: new Date().toISOString().split('T')[0],
-    description: '', tag: '', ticker: null,
+    description: '', tag: '', ticker: null, interestRate: '', offeringDate: '', esppDiscount: '',
   };
   const [form, setForm] = useState(emptyForm);
 
@@ -225,6 +255,9 @@ function ManageInvestments() {
         currentValue: parseFloat(form.currentValue),
         quantity: parseFloat(form.quantity) || 1,
         ticker: investmentMode === 'ticker' ? form.ticker : null,
+        interestRate: form.type === 'savings_account' && form.interestRate ? parseFloat(form.interestRate) : null,
+        offeringDate: form.type === 'espp' && form.offeringDate ? form.offeringDate : null,
+        esppDiscount: form.type === 'espp' && form.esppDiscount ? parseFloat(form.esppDiscount) : null,
       });
       showSuccess('Investment added!');
       setAddDialog(false);
@@ -243,6 +276,9 @@ function ManageInvestments() {
         currentValue: parseFloat(form.currentValue),
         quantity: parseFloat(form.quantity) || 1,
         ticker: investmentMode === 'ticker' ? form.ticker : null,
+        interestRate: form.type === 'savings_account' && form.interestRate ? parseFloat(form.interestRate) : null,
+        offeringDate: form.type === 'espp' && form.offeringDate ? form.offeringDate : null,
+        esppDiscount: form.type === 'espp' && form.esppDiscount ? parseFloat(form.esppDiscount) : null,
       });
       showSuccess('Investment updated!');
       setEditDialog(false);
@@ -275,6 +311,9 @@ function ManageInvestments() {
       quantity: (inv.quantity || 1).toString(), purchaseDate: inv.purchaseDate?.split('T')[0] || '',
       description: inv.description || '', tag: inv.tag || '',
       ticker: inv.ticker || null, account: inv.account || 'taxable',
+      interestRate: inv.interestRate != null ? inv.interestRate.toString() : '',
+      offeringDate: inv.offeringDate ? inv.offeringDate.split('T')[0] : '',
+      esppDiscount: inv.esppDiscount != null ? inv.esppDiscount.toString() : '',
     });
     setEditDialog(true);
   };
@@ -288,12 +327,49 @@ function ManageInvestments() {
     setDialogError('');
   };
 
-  const typeColors = ['#3b82f6','#6366f1','#10b981','#f97316','#ec4899','#06b6d4','#8b5cf6','#ef4444'];
+  const typeColors = ['#3b82f6','#6366f1','#10b981','#f97316','#ec4899','#06b6d4','#8b5cf6','#ef4444','#facc15','#a855f7','#14b8a6','#f43f5e'];
 
-  const chartData = summary?.byType ? {
-    labels: summary.byType.map(t => INVESTMENT_TYPES.find(it => it.value === t.type)?.label || t.type),
-    datasets: [{ data: summary.byType.map(t => t.currentValue), backgroundColor: typeColors.slice(0, summary.byType.length), borderWidth: 2, borderColor: theme.palette.background.paper }],
-  } : null;
+  const chartData = (() => {
+    if (!investments || investments.length === 0) return null;
+    const groups = {};
+    investments.forEach(inv => {
+      let key;
+      if (chartGroupBy === 'type') {
+        key = inv.type || 'other';
+      } else if (chartGroupBy === 'account') {
+        key = inv.account || 'taxable';
+      } else {
+        key = inv.tag || 'Untagged';
+      }
+      if (!groups[key]) groups[key] = 0;
+      groups[key] += inv.currentValue * (inv.quantity || 1);
+    });
+    const entries = Object.entries(groups).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 0) return null;
+    const labelMap = chartGroupBy === 'type'
+      ? (k) => INVESTMENT_TYPES.find(t => t.value === k)?.label || k
+      : chartGroupBy === 'account'
+        ? (k) => ACCOUNT_TYPES.find(a => a.value === k)?.label || k
+        : (k) => k;
+    return {
+      keys: entries.map(e => e[0]),
+      labels: entries.map(e => labelMap(e[0])),
+      datasets: [{ data: entries.map(e => e[1]), backgroundColor: typeColors.slice(0, entries.length), borderWidth: 2, borderColor: theme.palette.background.paper, hoverOffset: 18 }],
+    };
+  })();
+
+  const handleChartClick = (event, elements) => {
+    if (elements.length > 0 && chartData) {
+      const index = elements[0].index;
+      const clickedKey = chartData.keys[index];
+      if (chartGroupBy === 'type') {
+        setTypeFilter(prev => prev === clickedKey ? '' : clickedKey);
+      } else if (chartGroupBy === 'account') {
+        setAccountFilter(prev => prev === clickedKey ? '' : clickedKey);
+      }
+      // For tag, no server-side filter — could add client-side later
+    }
+  };
 
   const renderForm = () => (
     <>
@@ -403,17 +479,16 @@ function ManageInvestments() {
         <Grid item xs={6}>
           <TextField
             fullWidth
-            label="Purchase Price"
+            label={form.type === 'espp' ? 'FMV at Purchase' : 'Purchase Price'}
             type="number"
             value={form.purchasePrice}
-            onChange={e => { if (investmentMode !== 'ticker' || !tickerVerified) setForm({...form, purchasePrice: e.target.value}); }}
+            onChange={e => setForm({...form, purchasePrice: e.target.value})}
             margin="normal"
             InputProps={{
               startAdornment: <InputAdornment position="start">$</InputAdornment>,
-              readOnly: investmentMode === 'ticker' && tickerVerified,
             }}
             inputProps={{ step: '0.01', min: '0' }}
-            helperText={investmentMode === 'ticker' && tickerVerified ? 'Auto-filled from purchase date' : ''}
+            helperText={form.type === 'espp' ? 'Fair market value on the purchase date' : investmentMode === 'ticker' && tickerVerified ? 'Auto-filled from purchase date' : ''}
           />
         </Grid>
         <Grid item xs={6}>
@@ -441,6 +516,43 @@ function ManageInvestments() {
           <TextField fullWidth label="Purchase Date" type="date" value={form.purchaseDate} onChange={e => handlePurchaseDateChange(e.target.value)} margin="normal" InputLabelProps={{ shrink: true }} />
         </Grid>
       </Grid>
+      {form.type === 'savings_account' && (
+        <TextField
+          fullWidth
+          label="Interest Rate (APY %)"
+          type="number"
+          value={form.interestRate}
+          onChange={e => setForm({...form, interestRate: e.target.value})}
+          margin="normal"
+          InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+          inputProps={{ step: '0.01', min: '0' }}
+        />
+      )}
+      {form.type === 'espp' && (
+        <TextField
+          fullWidth
+          label="Offering Date"
+          type="date"
+          value={form.offeringDate}
+          onChange={e => setForm({...form, offeringDate: e.target.value})}
+          margin="normal"
+          InputLabelProps={{ shrink: true }}
+          helperText="Start of the ESPP offering period (needed for qualified disposition calculation)"
+        />
+      )}
+      {form.type === 'espp' && (
+        <TextField
+          fullWidth
+          label="ESPP Discount"
+          type="number"
+          value={form.esppDiscount}
+          onChange={e => setForm({...form, esppDiscount: e.target.value})}
+          margin="normal"
+          InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+          inputProps={{ step: '1', min: '0', max: '100' }}
+          helperText={form.esppDiscount && form.purchasePrice ? `Cost basis: ${formatCurrency(parseFloat(form.purchasePrice) * (1 - parseFloat(form.esppDiscount) / 100))}` : 'Discount percentage applied to FMV (e.g., 15)'}
+        />
+      )}
       <TextField fullWidth label="Description" value={form.description} onChange={e => setForm({...form, description: e.target.value})} margin="normal" multiline rows={2} />
       <TextField fullWidth label="Tag" value={form.tag} onChange={e => setForm({...form, tag: e.target.value})} margin="normal" />
     </>
@@ -489,13 +601,27 @@ function ManageInvestments() {
           </Grid>
         )}
 
-        {/* Type Chart */}
+        {/* Portfolio Chart */}
         {chartData && chartData.labels.length > 0 && (
           <Card elevation={0} sx={{ mb: 3, background: cardBg.purpleTeal ? cardBg.purpleTeal(theme.palette.mode) : 'transparent', border: '1px solid', borderColor: 'divider' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, ...gradientText(GRADIENT_BLUE_INDIGO) }}>Portfolio by Type</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, ...gradientText(GRADIENT_BLUE_INDIGO) }}>
+                  Portfolio by {chartGroupBy === 'type' ? 'Type' : chartGroupBy === 'account' ? 'Account' : 'Tag'}
+                </Typography>
+                <ToggleButtonGroup
+                  value={chartGroupBy}
+                  exclusive
+                  onChange={(e, val) => { if (val) setChartGroupBy(val); }}
+                  size="small"
+                >
+                  <ToggleButton value="type" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Type</ToggleButton>
+                  <ToggleButton value="account" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Account</ToggleButton>
+                  <ToggleButton value="tag" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Tag</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
               <Box sx={{ maxWidth: 300, mx: 'auto' }}>
-                <Doughnut data={chartData} options={{ responsive: true, plugins: { legend: { position: 'bottom', labels: { color: theme.palette.text.primary, usePointStyle: true } } } }} />
+                <Doughnut data={chartData} options={{ responsive: true, onClick: handleChartClick, onHover: (event, elements) => { event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default'; }, plugins: { legend: { position: 'bottom', labels: { color: theme.palette.text.primary, usePointStyle: true } }, tooltip: { callbacks: { label: (ctx) => { const val = ctx.parsed || 0; const total = ctx.dataset.data.reduce((a, b) => a + b, 0); const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0; return ` ${ctx.label}: ${formatCurrency(val)} (${pct}%)`; } } } } }} />
               </Box>
             </CardContent>
           </Card>
@@ -546,6 +672,7 @@ function ManageInvestments() {
               const gainLoss = (inv.currentValue - inv.purchasePrice) * (inv.quantity || 1);
               const gainPct = inv.purchasePrice > 0 ? ((inv.currentValue - inv.purchasePrice) / inv.purchasePrice * 100) : 0;
               const hasTicker = !!inv.ticker;
+              const esppQual = getEsppQualification(inv);
               return (
                 <React.Fragment key={inv._id}>
                   {idx > 0 && <Divider />}
@@ -559,7 +686,7 @@ function ManageInvestments() {
                   >
                     <ListItemText
                       primary={<Box display="flex" alignItems="center" gap={1} flexWrap="wrap"><Typography fontWeight={600}>{inv.name}</Typography>{hasTicker && <Chip label={inv.ticker} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 600 }} />}{!hasTicker && <Chip label="Manual" size="small" sx={{ bgcolor: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6' }} />}<Chip label={INVESTMENT_TYPES.find(t => t.value === inv.type)?.label || inv.type} size="small" sx={{ bgcolor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }} /><Chip label={ACCOUNT_TYPES.find(a => a.value === inv.account)?.label || inv.account || 'Taxable'} size="small" sx={{ bgcolor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }} />{inv.tag && <Chip label={inv.tag} size="small" variant="outlined" />}</Box>}
-                      secondary={<Box><Typography variant="body2" component="span">Buy: {formatCurrency(inv.purchasePrice)} {'\u00D7'} {inv.quantity || 1} = {formatCurrency(inv.purchasePrice * (inv.quantity || 1))} {'\u2192'} Now: {formatCurrency(inv.currentValue * (inv.quantity || 1))}</Typography><Typography variant="body2" sx={{ color: gainLoss >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}> {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainPct.toFixed(1)}%)</Typography>{hasTicker && inv.lastPriceUpdate && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Price updated {formatTimeAgo(inv.lastPriceUpdate)}</Typography>}</Box>}
+                      secondary={<Box><Typography variant="body2" component="span">Buy: {formatCurrency(inv.purchasePrice)} {'\u00D7'} {inv.quantity || 1} = {formatCurrency(inv.purchasePrice * (inv.quantity || 1))} {'\u2192'} Now: {formatCurrency(inv.currentValue * (inv.quantity || 1))}</Typography><Typography variant="body2" sx={{ color: gainLoss >= 0 ? '#10b981' : '#ef4444', fontWeight: 600 }}> {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainPct.toFixed(1)}%)</Typography>{inv.type === 'savings_account' && inv.interestRate != null && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>APY: {inv.interestRate}%</Typography>}{inv.type === 'espp' && inv.esppDiscount != null && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Discount: {inv.esppDiscount}% {'\u00B7'} Cost basis: {formatCurrency(inv.purchasePrice * (1 - inv.esppDiscount / 100))}</Typography>}{esppQual && <Chip label={esppQual.label} size="small" sx={{ mt: 0.5, bgcolor: esppQual.status === 'qualified' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(249, 115, 22, 0.15)', color: esppQual.color, fontWeight: 600 }} />}{hasTicker && inv.lastPriceUpdate && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Price updated {formatTimeAgo(inv.lastPriceUpdate)}</Typography>}</Box>}
                     />
                   </ListItem>
                 </React.Fragment>
